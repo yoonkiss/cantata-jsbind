@@ -1,0 +1,26 @@
+#!/bin/sh
+
+SCRIPT=`readlink -f $0`
+
+DIR_HOME=`dirname $SCRIPT`
+
+TARGET=$DIR_HOME/target
+
+if [ -n "$1" ];
+then
+	TARGET=$1
+fi
+
+echo "Target: $TARGET"
+
+cd $DIR_HOME/src
+node-waf configure build
+
+if ! [ -e $TARGET ];
+then
+	mkdir -p $TARGET
+fi
+
+cp $DIR_HOME/src/build/Release/tizen-native.node $TARGET
+
+
