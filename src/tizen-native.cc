@@ -115,8 +115,7 @@ class Contacts : node::ObjectWrap
 		friendsContacts -> Set( 1, bContact );
 		
 		v8::Local<v8::Object> friendsCategory =  v8::Object::New();
-		friendsCategory -> Set( v8::String::New( "name" ), v8::String::New( "Friends" ) );
-		friendsCategory -> Set( v8::String::New( "contacts" ), friendsContacts );
+		friendsCategory -> Set( v8::String::New( "Native-Friends" ), friendsContacts );
 
 
 
@@ -129,8 +128,7 @@ class Contacts : node::ObjectWrap
 		familyContacts -> Set( 0, cContact );
 		
 		v8::Local<v8::Object> familyCategory =  v8::Object::New();
-		familyCategory -> Set( v8::String::New( "name" ), v8::String::New( "Family" ) );
-		familyCategory -> Set( v8::String::New( "contacts" ), familyContacts );
+		familyCategory -> Set( v8::String::New( "Native-Family" ), familyContacts );
 
 		v8::Local<v8::Array> result = v8::Array::New( 2 );
 		result -> Set( 0, friendsCategory );
