@@ -11,5 +11,5 @@ def build(bld):
 	obj = bld.new_task_gen("cxx", "shlib", "node_addon")
 	obj.cxxflags = ["-g", "-D_FILE_OFFSET_BITS=64", "-D_LARGEFILE_SOURCE", "-Wall"]
 	obj.target = "tizen-native"
-	obj.source = "tizen-native.cc"
+	obj.source = [ "tizenair-util.cc", "tizenair.cc" ]
 	obj.includes = [ os.environ["INC_OSP"], os.environ["INC_TIZEN"] ]
