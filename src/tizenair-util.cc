@@ -34,7 +34,6 @@ void NODE_EXTERN Util::Init( v8::Handle<v8::Object> target )
 	funcTemplate -> Set( v8::String::NewSymbol( "getFilenameFrom" ), ( _startsWith = v8::Persistent<v8::FunctionTemplate>::New( v8::FunctionTemplate::New( getFilenameFrom ) ) ) -> GetFunction() );
 	funcTemplate -> Set( v8::String::NewSymbol( "getParentFrom" ), ( _startsWith = v8::Persistent<v8::FunctionTemplate>::New( v8::FunctionTemplate::New( getParentFrom ) ) ) -> GetFunction() );
 
-	// Contacts.prototype.Contacts 에 생성자 할당
 	target -> Set( v8::String::NewSymbol( "Util" ), funcTemplate -> GetFunction() );
 }
 
@@ -60,7 +59,6 @@ v8::Handle<v8::Value> Util::startsWith( const v8::Arguments& args ) {
 }
 
 v8::Handle<v8::Value> Util::endsWith( const v8::Arguments& args ) {
-	/*
 	if ( args.Length() < 2 ) {
 		return v8::Boolean::New( false );
 	} else {
@@ -74,7 +72,6 @@ v8::Handle<v8::Value> Util::endsWith( const v8::Arguments& args ) {
 			return v8::Boolean::New( true );
 		}
 	}
-	*/
 	return v8::Boolean::New( false );
 }
 

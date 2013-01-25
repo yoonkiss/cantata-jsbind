@@ -11,14 +11,16 @@
 #include <FSclContact.h>
 */
 
-v8::Persistent<v8::FunctionTemplate> Util::funcTemplate;
-v8::Persistent<v8::FunctionTemplate> Util::_startsWith;
-v8::Persistent<v8::FunctionTemplate> Util::_endsWith;
-v8::Persistent<v8::FunctionTemplate> Util::_addPath;
-v8::Persistent<v8::FunctionTemplate> Util::_getFilenameFrom;
-v8::Persistent<v8::FunctionTemplate> Util::_getParentFrom;
+v8::Persistent<v8::FunctionTemplate> Files::funcTemplate;
+v8::Persistent<v8::FunctionTemplate> Files::_getAttribute;
+v8::Persistent<v8::FunctionTemplate> Files::_read;
+v8::Persistent<v8::FunctionTemplate> Files::_list;
+v8::Persistent<v8::FunctionTemplate> Files::_createDirectory;
+v8::Persistent<v8::FunctionTemplate> Files::_remove;
+v8::Persistent<v8::FunctionTemplate> Files::_moveTo;
+v8::Persistent<v8::FunctionTemplate> Files::_rename;
 
-void NODE_EXTERN Util::Init( v8::Handle<v8::Object> target )
+void NODE_EXTERN Files::Init( v8::Handle<v8::Object> target )
 {
 	v8::HandleScope scope;
 
@@ -26,110 +28,48 @@ void NODE_EXTERN Util::Init( v8::Handle<v8::Object> target )
 	funcTemplate->InstanceTemplate() -> SetInternalFieldCount( 1 );
 
 	// 클래스 명 할당( Contacts = function() {}; )
-	funcTemplate->SetClassName( v8::String::NewSymbol( "Util" ) );
+	funcTemplate->SetClassName( v8::String::NewSymbol( "Files" ) );
 
-	funcTemplate -> Set( v8::String::NewSymbol( "startsWith" ), ( _startsWith = v8::Persistent<v8::FunctionTemplate>::New( v8::FunctionTemplate::New( startsWith ) ) ) -> GetFunction() );
-	funcTemplate -> Set( v8::String::NewSymbol( "endsWith" ), ( _startsWith = v8::Persistent<v8::FunctionTemplate>::New( v8::FunctionTemplate::New( endsWith ) ) ) -> GetFunction() );
-	funcTemplate -> Set( v8::String::NewSymbol( "addPath" ), ( _startsWith = v8::Persistent<v8::FunctionTemplate>::New( v8::FunctionTemplate::New( addPath ) ) ) -> GetFunction() );
-	funcTemplate -> Set( v8::String::NewSymbol( "getFilenameFrom" ), ( _startsWith = v8::Persistent<v8::FunctionTemplate>::New( v8::FunctionTemplate::New( getFilenameFrom ) ) ) -> GetFunction() );
-	funcTemplate -> Set( v8::String::NewSymbol( "getParentFrom" ), ( _startsWith = v8::Persistent<v8::FunctionTemplate>::New( v8::FunctionTemplate::New( getParentFrom ) ) ) -> GetFunction() );
+	funcTemplate -> Set( v8::String::NewSymbol( "getAttribute" ), ( _getAttribute = v8::Persistent<v8::FunctionTemplate>::New( v8::FunctionTemplate::New( getAttribute ) ) ) -> GetFunction() );
+	funcTemplate -> Set( v8::String::NewSymbol( "read" ), ( _read = v8::Persistent<v8::FunctionTemplate>::New( v8::FunctionTemplate::New( read ) ) ) -> GetFunction() );
+	funcTemplate -> Set( v8::String::NewSymbol( "list" ), ( _list = v8::Persistent<v8::FunctionTemplate>::New( v8::FunctionTemplate::New( list ) ) ) -> GetFunction() );
+	funcTemplate -> Set( v8::String::NewSymbol( "createDirectory" ), ( _createDirectory = v8::Persistent<v8::FunctionTemplate>::New( v8::FunctionTemplate::New( createDirectory ) ) ) -> GetFunction() );
+	funcTemplate -> Set( v8::String::NewSymbol( "remove" ), ( _remove = v8::Persistent<v8::FunctionTemplate>::New( v8::FunctionTemplate::New( remove ) ) ) -> GetFunction() );
+	funcTemplate -> Set( v8::String::NewSymbol( "moveTo" ), ( _moveTo = v8::Persistent<v8::FunctionTemplate>::New( v8::FunctionTemplate::New( moveTo ) ) ) -> GetFunction() );
+	funcTemplate -> Set( v8::String::NewSymbol( "rename" ), ( _rename = v8::Persistent<v8::FunctionTemplate>::New( v8::FunctionTemplate::New( rename ) ) ) -> GetFunction() );
 
 	// Contacts.prototype.Contacts 에 생성자 할당
-	target -> Set( v8::String::NewSymbol( "Util" ), funcTemplate -> GetFunction() );
+	target -> Set( v8::String::NewSymbol( "Files" ), funcTemplate -> GetFunction() );
 }
 
-v8::Handle<v8::Value> Util::New( const v8::Arguments& args ) {
+v8::Handle<v8::Value> Files::New( const v8::Arguments& args ) {
 	return v8::Object::New();
 }
 
-v8::Handle<v8::Value> Util::startsWith( const v8::Arguments& args ) {
-	if ( args.Length() < 2 ) {
-		return v8::Boolean::New( false );
-	} else {
-		v8::String::Utf8Value str( args[0] );
-		v8::String::Utf8Value checker( args[1] );
+v8::Handle<v8::Value> Files::getAttribute( const v8::Arguments& args ) {
+	return v8::Undefined( false );
+}
 
-		std::string str2 = *str;
-		std::string checker2 = *checker;
+v8::Handle<v8::Value> Files::read( const v8::Arguments& args ) {
+	return v8::Undefined( false );
+}
 
-		if ( checker2 == str2.substr( 0, checker2.size() ) ) {
-			return v8::Boolean::New( true );
-		}
-	}
+v8::Handle<v8::Value> Files::list( const v8::Arguments& args ) {
 	return v8::Boolean::New( false );
 }
 
-v8::Handle<v8::Value> Util::endsWith( const v8::Arguments& args ) {
-	/*
-	if ( args.Length() < 2 ) {
-		return v8::Boolean::New( false );
-	} else {
-		v8::String::Utf8Value str( args[0] );
-		v8::String::Utf8Value checker( args[1] );
-
-		std::string str2 = *str;
-		std::string checker2 = *checker;
-
-		if ( checker2 == str2.substr( str2.size() - checker2.size(), checker2.size() ) ) {
-			return v8::Boolean::New( true );
-		}
-	}
-	*/
+v8::Handle<v8::Value> Files::createDirectory( const v8::Arguments& args ) {
 	return v8::Boolean::New( false );
 }
 
-std::string Util::addPath( std::string path1, std::string path2 ) {
-	if ( path1.substr( path1.size() - 1, 1 ) == "/" ) {
-		return addPath( path1.substr( 1, path1.size() - 1 ), path2 );
-	} else if ( path2.substr( 0, 1 ) == "/" ) {
-		return addPath( path1, path2.substr( 1, path2.size() - 1 ) );
-	} else {
-		return path1 + "/" + path2;
-	}
+v8::Handle<v8::Value> Files::remove( const v8::Arguments& args ) {
+	return v8::Boolean::New( false );
 }
 
-v8::Handle<v8::Value> Util::addPath( const v8::Arguments& args ) {
-	if ( args.Length() < 1 ) {
-		return v8::Undefined();
-	} else if ( args.Length() < 2 ) {
-		return args[0];
-	} else {
-		v8::String::Utf8Value path1( args[0] );
-		v8::String::Utf8Value path2( args[1] );
-
-		return v8::String::NewSymbol( addPath( *path1, *path2 ).c_str() );
-	}
-}
-v8::Handle<v8::Value> Util::getFilenameFrom( const v8::Arguments& args ) {
-	if ( args.Length() < 1 ) {
-		return v8::Undefined();
-	}
-
-	v8::String::Utf8Value path( args[0] );
-	std::string p = *path;
-
-	size_t index = p.rfind( '/' );
-	if ( std::string::npos == index ) {
-		return args[0];
-	}
-
-
-	return v8::String::NewSymbol( p.substr( index + 1, p.size() - index - 1 ).c_str() );
-}
-v8::Handle<v8::Value> Util::getParentFrom( const v8::Arguments& args ) {
-	if ( args.Length() < 1 ) {
-		return v8::Undefined();
-	}
-
-	v8::String::Utf8Value path( args[0] );
-	std::string p = *path;
-
-	size_t index = p.rfind( '/' );
-	if ( std::string::npos == index ) {
-		return args[0];
-	}
-
-	return v8::String::NewSymbol( p.substr( 0, index ).c_str() );
+v8::Handle<v8::Value> Files::moveTo( const v8::Arguments& args ) {
+	return v8::Boolean::New( false );
 }
 
-
+v8::Handle<v8::Value> Files::rename( const v8::Arguments& args ) {
+	return v8::Boolean::New( false );
+}

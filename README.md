@@ -27,7 +27,13 @@ nodeunit-watcher *.js
 ```
 
 
-= Reference
+* Reference
+[V8 Document](https://developers.google.com/v8/?hl=ko)
 
-https://www.cloudkick.com/blog/2010/aug/23/writing-nodejs-native-extensions/
+[V8 API Reference](http://izs.me/v8-docs/main.html)
 
+http://nodejs.org/api/addons.html
+
+https://www.cloudkick.com/blog/2010/aug/23/writing-nodejs-native-extensions
+
+http://syskall.com/how-to-write-your-own-native-nodejs-extension/index.html
