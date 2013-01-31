@@ -4,26 +4,24 @@
 #include <node.h>
 #include "tizenair-fileattr.h"
 
-v8::Persistent<v8::FunctionTemplate> FileAttribute::funcTemplate;
+v8::Persistent<v8::Function> FileAttribute::constructor;
 
 void NODE_EXTERN FileAttribute::Init( v8::Handle<v8::Object> target )
 {
 	v8::HandleScope scope;
 
-	funcTemplate = v8::Persistent<v8::FunctionTemplate>::New( v8::FunctionTemplate::New( New ) );
-	funcTemplate->InstanceTemplate() -> SetInternalFieldCount( 1 );
+	v8::Local<v8::FunctionTemplate> tmpl = v8::FunctionTemplate::New( New );
+	tmpl->SetClassName( v8::String::NewSymbol( "FileAttribute" ) );
+	tmpl->InstanceTemplate() -> SetInternalFieldCount( 1 );
 
-	// 클래스 명 할당( Contacts = function() {}; )
-	funcTemplate->SetClassName( v8::String::NewSymbol( "FileAttribute" ) );
+	NODE_SET_PROTOTYPE_METHOD( tmpl, "getPath", getPath );
+	NODE_SET_PROTOTYPE_METHOD( tmpl, "getName", getName );
+	NODE_SET_PROTOTYPE_METHOD( tmpl, "exists", exists );
+	NODE_SET_PROTOTYPE_METHOD( tmpl, "isDirectory", isDirectory );
+	NODE_SET_PROTOTYPE_METHOD( tmpl, "isFile", isFile );
 
-	NODE_SET_PROTOTYPE_METHOD( funcTemplate, "getPath", getPath );
-	NODE_SET_PROTOTYPE_METHOD( funcTemplate, "getName", getName );
-	NODE_SET_PROTOTYPE_METHOD( funcTemplate, "exists", exists );
-	NODE_SET_PROTOTYPE_METHOD( funcTemplate, "isDirectory", isDirectory );
-	NODE_SET_PROTOTYPE_METHOD( funcTemplate, "isFile", isFile );
-
-
-	target -> Set( v8::String::NewSymbol( "FileAttribute" ), funcTemplate -> GetFunction() );
+	FileAttribute::constructor = v8::Persistent<v8::Function>::New( tmpl->GetFunction() );
+	target -> Set( v8::String::NewSymbol( "FileAttribute" ), FileAttribute::constructor );
 }
 
 v8::Handle<v8::Value> FileAttribute::New( const v8::Arguments& args )
@@ -37,18 +35,14 @@ v8::Handle<v8::Value> FileAttribute::New( const v8::Arguments& args )
 		instance->_name = UNWRAP_STRING( attr->Get( v8::String::NewSymbol( "name" ) ) );
 		instance->_path = UNWRAP_STRING( attr->Get( v8::String::NewSymbol( "path" ) ) );
 		instance->_size = v8::Local<v8::Integer>::Cast( attr->Get( v8::String::NewSymbol( "size" ) ) )->Value();
+
+		printf( "Attr %s %s %s\n", instance->_type.c_str(), instance->_name.c_str(), instance->_path.c_str() );
 	}
 
 	args.This()->SetAccessor( v8::String::New( "size" ), FileAttribute::getSize, FileAttribute::setSize );
 	instance -> Wrap( args.This() );
 
 	return args.This();
-}
-
-FileAttribute::~FileAttribute() {
-	TRY_DELETE( this->_type );
-	TRY_DELETE( this->_name );
-	TRY_DELETE( this->_path );
 }
 
 v8::Handle<v8::Value> FileAttribute::getPath( const v8::Arguments& args )
@@ -66,7 +60,7 @@ v8::Handle<v8::Value> FileAttribute::exists( const v8::Arguments& args )
 
 	FileAttribute* instance = FileAttribute::Unwrap<FileAttribute>( args.This() );
 
-	return scope.Close( v8::Boolean::New( instance->_type != NULL ) );
+	return scope.Close( v8::Boolean::New( instance->_type != "" ) );
 }
 
 v8::Handle<v8::Value> FileAttribute::isDirectory( const v8::Arguments& args )
@@ -75,7 +69,7 @@ v8::Handle<v8::Value> FileAttribute::isDirectory( const v8::Arguments& args )
 
 	FileAttribute* instance = FileAttribute::Unwrap<FileAttribute>( args.This() );
 
-	return v8::Boolean::New( NULL!= instance->_type && "d" == *( instance->_type ) );
+	return v8::Boolean::New( "d" == instance->_type );
 }
 
 v8::Handle<v8::Value> FileAttribute::isFile( const v8::Arguments& args )
@@ -84,7 +78,7 @@ v8::Handle<v8::Value> FileAttribute::isFile( const v8::Arguments& args )
 
 	FileAttribute* instance = FileAttribute::Unwrap<FileAttribute>( args.This() );
 
-	return v8::Boolean::New( NULL!= instance->_type && "f" == *( instance->_type ) );
+	return v8::Boolean::New( "f" == instance->_type );
 }
 
 v8::Handle<v8::Value> FileAttribute::getName( const v8::Arguments& args )

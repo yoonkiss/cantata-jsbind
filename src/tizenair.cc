@@ -5,6 +5,7 @@
 
 #include "tizenair-util.h"
 #include "tizenair-fileattr.h"
+#include "tizenair-fs.h"
 #include "tizenair-file.h"
 
 extern "C" {
