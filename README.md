@@ -1,6 +1,7 @@
 cantata-jsbind
 ==============
-Test
+
+### Test
 
 테스트는 nodeunit을 사용한다.
 
@@ -26,8 +27,17 @@ cd test/src
 nodeunit-watcher *.js
 ```
 
+### To build your project
+add include path: C/C++ build > Settings > Tool Settings > C++ Compiler > Includes
 
-* Reference
+~/your working directory/cantata-node/node/src
+
+~/your working directory/cantata-node/node/deps/uv/include
+
+~/your working directory/cantata-node/node/deps/v8/include
+
+
+### Reference
 [V8 Document](https://developers.google.com/v8/?hl=ko)
 
 [V8 API Reference](http://izs.me/v8-docs/main.html)
