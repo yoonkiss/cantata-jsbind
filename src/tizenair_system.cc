@@ -6,6 +6,7 @@
 #include <FBase.h>
 #include <FSystem.h>
 #include <FSocial.h>
+#include <FTelephony.h>
 
 #include "tizenair-util.h"
 #include "tizenair_system.h"
@@ -95,6 +96,17 @@ v8::Handle<v8::Value> System::getPhoneNumber(const v8::Arguments& args) {
 
     v8::HandleScope scope;
 
-    return scope.Close(v8::String::New("dummy number"));
+    Tizen::Telephony::SimInfo *pSimInfo = new Tizen::Telephony::SimInfo();
+    result r = pSimInfo->Construct();
+    if ( IsFailed(r) ) {
+        delete pSimInfo;
+        // when SIM is not available 'undefined' return.
+        return scope.Close( v8::Undefined() );
+    }
+
+    // SIM is available then get phone number
+    v8::String phoneNumber = v8::String::New( pSimInfo->GetPhoneNumber() );
+    delete pSimInfo;
+    return scope.Close( phoneNumber );
 }
 
