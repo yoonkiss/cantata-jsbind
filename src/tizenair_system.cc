@@ -28,8 +28,13 @@ void NODE_EXTERN System::Init(v8::Handle<v8::Object> target) {
     funcTemplate->SetClassName(v8::String::NewSymbol("System"));
 
     //NODE_SET_PROTOTYPE_METHOD(funcTemplate, "getStorage", getStorage);
-    funcTemplate -> Set( v8::String::NewSymbol( "getStorage" ), ( _getStorage = v8::Local<v8::FunctionTemplate>::New( v8::FunctionTemplate::New( getStorage ) ) ) -> GetFunction() );
-    //target->Set(v8::String::NewSymbol("getStorage"), v8::FunctionTemplate::New(getStorage)->GetFunction());
+    funcTemplate -> Set( v8::String::NewSymbol( "getStorage" ),
+            ( _getStorage = v8::Local<v8::FunctionTemplate>::New( v8::FunctionTemplate::New( getStorage ) ) ) -> GetFunction() );
+    funcTemplate -> Set( v8::String::NewSymbol( "getMemoryInfo" ), v8::FunctionTemplate::New( getMemoryInfo ) -> GetFunction() );
+    funcTemplate -> Set( v8::String::NewSymbol( "getPhoneNumber" ), v8::FunctionTemplate::New( getPhoneNumber ) -> GetFunction() );
+    funcTemplate -> Set( v8::String::NewSymbol( "getCPUUsages" ), v8::FunctionTemplate::New( getCPUUsages ) -> GetFunction() );
+
+
     target->Set( v8::String::NewSymbol( "System" ), funcTemplate -> GetFunction() );
 }
 
@@ -48,7 +53,7 @@ v8::Handle<v8::Value> System::getStorage(const v8::Arguments& args) {
      * https://developer.tizen.org/help/topic/org.tizen.native.appprogramming/html/guide/system/runtime_info.htm
      */
     long long storage_internal_available = 0; //in bytes
-    long long storage_internal_available_media = 0;
+//    long long storage_internal_available_media = 0;
     long long storage_internal_audio_allocated = 0;
     long long storage_internal_application_allocated = 0;
     long long storage_internal_download_allocated = 0;
@@ -201,9 +206,14 @@ v8::Handle<v8::Value> System::getPhoneNumber(const v8::Arguments& args) {
     }
 
     // SIM is available then get phone number
-    v8::String phoneNumber = v8::String::New( pSimInfo->GetPhoneNumber() );
+    const wchar_t * pwPhoneNumber = pSimInfo->GetPhoneNumber().GetPointer();
+    int nLen = wcslen( pwPhoneNumber );
+    char buf[128];
+    memset( buf, 0x00, sizeof(buf) );
+    wcstombs( buf, pwPhoneNumber, nLen );
+
     delete pSimInfo;
-    return scope.Close( phoneNumber );
+    return scope.Close( v8::String::New( buf ) );
 }
 
 v8::Handle<v8::Value> System::getCPUUsages(const v8::Arguments& args) {
@@ -222,8 +232,8 @@ v8::Handle<v8::Value> System::getCPUUsages(const v8::Arguments& args) {
     // for experiments.
     {
         char buf[512];
-        sprintf(buf, "%d", cpuInfo);
-        memoryInfo->Set(v8::String::New("cpuUsage"), v8::String::New(buf));
+        sprintf(buf, "%d", cpu_usage);
+        cpuInfo->Set(v8::String::New("cpuUsage"), v8::String::New(buf));
     }
     return scope.Close( cpuInfo );
 }
