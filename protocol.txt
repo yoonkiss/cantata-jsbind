@@ -1,0 +1,31 @@
+### Image
+
+# List:
+in: album, page, page_cnt
+out:
+{ 
+"total": number,
+"category": string,
+"name": array
+}
+
+
+# View:
+in: full path
+out:
+{ 
+"path": string,
+"height": number,
+"width": number,
+"cameramanufacturer": string,
+"cameramodel": string,
+"datetime": string,
+"latitude": number,
+"longitude": number,
+"software": string
+"whitebalance" : string
+}
+
+# Remove:
+in: full path
+out: {boolean}
