@@ -3,7 +3,7 @@
 
 #include <string>
 #include <v8.h>
-#include <node.h>
+//#include <node.h>
 
 
 #include "tizenair-common.h"

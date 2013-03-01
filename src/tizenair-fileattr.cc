@@ -29,7 +29,7 @@ v8::Handle<v8::Value> FileAttribute::New( const v8::Arguments& args )
 	v8::HandleScope scope;
 	FileAttribute* instance = new FileAttribute();
 
-	if ( 0 < args.Length() ) {
+	//if ( 0 < args.Length() ) {
 		v8::Local<v8::Object> attr = v8::Local<v8::Object>::Cast( args[0] );
 		instance->_type = UNWRAP_STRING( attr->Get( v8::String::NewSymbol( "type" ) ) );
 		instance->_name = UNWRAP_STRING( attr->Get( v8::String::NewSymbol( "name" ) ) );
@@ -37,7 +37,7 @@ v8::Handle<v8::Value> FileAttribute::New( const v8::Arguments& args )
 		instance->_size = v8::Local<v8::Integer>::Cast( attr->Get( v8::String::NewSymbol( "size" ) ) )->Value();
 
 		printf( "Attr %s %s %s\n", instance->_type.c_str(), instance->_name.c_str(), instance->_path.c_str() );
-	}
+	//}
 
 	args.This()->SetAccessor( v8::String::New( "size" ), FileAttribute::getSize, FileAttribute::setSize );
 	instance -> Wrap( args.This() );
