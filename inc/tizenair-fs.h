@@ -2,7 +2,7 @@
 #define __TIZENAIR_FS__
 
 #include <v8.h>
-//#include <node.h>
+#include <node.h>
 
 #include "tizenair-common.h"
 
@@ -21,7 +21,7 @@ class FS : node::ObjectWrap
 		static v8::Handle<v8::Value> remove( const v8::Arguments& args );
 		static v8::Handle<v8::Value> rename( const v8::Arguments& args );
 		static v8::Handle<v8::Value> stream( const v8::Arguments& args );
-		static v8::Persistent<v8::Function> constructor;
+
 	protected:
 		std::string _base;
 };
