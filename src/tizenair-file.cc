@@ -14,7 +14,6 @@
 #include <sys/types.h>
 
 v8::Persistent<v8::FunctionTemplate> Files::funcTemplate;
-v8::Persistent<v8::Function> Files::_fs;
 v8::Persistent<v8::FunctionTemplate> Files::_getAttribute;
 v8::Persistent<v8::FunctionTemplate> Files::_read;
 v8::Persistent<v8::FunctionTemplate> Files::_list;

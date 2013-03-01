@@ -1,7 +1,10 @@
 #include <string>
+#include <locale>
 #include <stdio.h>
+#include <stdlib.h>
 #include <v8.h>
 #include <node.h>
+
 #include "tizenair-util.h"
 
 v8::Persistent<v8::Function> Util::constructor;
@@ -118,4 +121,23 @@ v8::Handle<v8::Value> Util::getParentFrom( const v8::Arguments& args ) {
 	return v8::String::NewSymbol( p.substr( 0, index ).c_str() );
 }
 
+bool Util::isArgumentNull(const v8::Handle<v8::Value> value) {
+    if (value->IsString() && value->ToString()->Length() > 0) {
+        return false;
+    } else {
+        return true;
+    }
+}
 
+char* Util::toAnsi(Tizen::Base::String str) {
+    //size_t wcstombs(char *dest, const wchar_t *src, size_t n);
+    char *cstr = (char *) malloc(str.GetLength()+1);
+    wcstombs(cstr, str.GetPointer(), str.GetLength()+1);
+
+    return cstr;
+}
+
+char* Util::toAnsi(char *cstr, Tizen::Base::String str, size_t n) {
+    wcstombs(cstr, str.GetPointer(), n);
+    return cstr;
+}
