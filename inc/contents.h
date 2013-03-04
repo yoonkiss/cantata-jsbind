@@ -7,6 +7,7 @@
 
 class TizenContents {
 public:
+/*
     TizenContents(Tizen::Content::ContentType type);
     TizenContents(Tizen::Content::ContentType type, int pageNo, int countPerPage);
     TizenContents(Tizen::Content::ContentType type, Tizen::Base::SortOrder sortOrder);
@@ -20,6 +21,17 @@ public:
     void    setCoutPerPage(int coutPerPage);
     int     getTotalPageCount() const;
     int     getTotalCount() const;
+*/
+    static result removeContent(Tizen::Content::ContentType contentType, Tizen::Base::String contentUriPath);
+    static result moveContent(Tizen::Content::ContentType contentType, Tizen::Base::String srcUriPath, Tizen::Base::String destUriPath);
+    /**
+     * Gets content id from the given full source path.
+     */
+    static result getContentId(Tizen::Base::String sourcePath, Tizen::Content::ContentId &contentId);
+    /**
+     * Gets contents full path from the given uri
+     */
+    static result getContentPath(Tizen::Content::ContentType contentType, Tizen::Base::String uri, Tizen::Base::String &path);
 
     static const int STRING_CAPACITY = 1024;
     static const int MAX_CONTENTSEARCH_COUNTPERPAGE = 50;
@@ -42,4 +54,5 @@ static const Tizen::Base::String STORAGE_PHONE_PATH     = Tizen::System::Environ
 static const Tizen::Base::String STORAGE_SDCARD_PATH    = Tizen::System::Environment::GetExternalStoragePath();
 static const Tizen::Base::String STORAGE_EXTERNAL_PATH  = Tizen::System::Environment::GetMediaPath();
 static const Tizen::Base::String DEFAULT_PLAYLIST = L"all";
+static const Tizen::Base::String DIRECTORY_SEPARATOR = L"/";
 #endif

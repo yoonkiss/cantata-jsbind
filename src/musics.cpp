@@ -18,11 +18,15 @@ using namespace Tizen::Content;
 void NODE_EXTERN Musics::Init(v8::Handle<v8::Object> target) {
     AppLog("Entered Musics::Init");
 
+    // strange?
     v8::Local<v8::FunctionTemplate> funcTemplate = v8::Local<v8::FunctionTemplate>::New(v8::FunctionTemplate::New(Musics::New));
 
     funcTemplate->SetClassName(v8::String::NewSymbol("Musics"));
-    funcTemplate->Set(v8::String::NewSymbol("getPlaylistNames"), v8::Local<v8::FunctionTemplate>::New(v8::FunctionTemplate::New(getPlaylistNames))->GetFunction());
-    funcTemplate->Set(v8::String::NewSymbol("getPlaylist"), v8::Local<v8::FunctionTemplate>::New(v8::FunctionTemplate::New(getPlaylist))->GetFunction());
+    funcTemplate->Set(v8::String::NewSymbol("getPlaylistNames"), v8::FunctionTemplate::New(getPlaylistNames)->GetFunction());
+    funcTemplate->Set(v8::String::NewSymbol("getPlaylist"), v8::FunctionTemplate::New(getPlaylist)->GetFunction());
+    funcTemplate->Set(v8::String::NewSymbol("post"), v8::FunctionTemplate::New(post)->GetFunction());
+    funcTemplate->Set(v8::String::NewSymbol("remove"), v8::FunctionTemplate::New(remove)->GetFunction());
+    funcTemplate->Set(v8::String::NewSymbol("moveTo"), v8::FunctionTemplate::New(moveTo)->GetFunction());
 
     target->Set(v8::String::NewSymbol("Musics"), funcTemplate->GetFunction());
 }
@@ -35,22 +39,17 @@ v8::Handle<v8::Value> Musics::New(const v8::Arguments& args) {
 
 v8::Handle<v8::Value> Musics::getPlaylistNames(const v8::Arguments& args) {
     AppLog("Entered Musics::getPlaylistNames (args length:%d)", args.Length());
-
+    if ( args.Length() > 0) {
+        AppLog("Bad parameters");
+        return v8::ThrowException(v8::String::New("Bad parameters"));
+    }
     v8::HandleScope scope;
     int cnt = 0;
-
-    TizenContents* pContents = new TizenContents(CONTENT_TYPE_AUDIO);
+    char buf[STRING_MAX];
     v8::Local<v8::Array> playArray = v8::Array::New();
-    IList* pAudioContents = pContents->getContentSearchList(L"");
-    if (IsFailed(GetLastResult()) == false && pAudioContents->GetCount()) {
-        char playlist[STRING_MAX];
-        Util::toAnsi(playlist, DEFAULT_PLAYLIST.GetPointer(), STRING_MAX);
-        playArray->Set(cnt++, v8::String::New(playlist));
-        delete pAudioContents;
-    }
-    delete pContents;
+    playArray->Set(cnt++, v8::String::New(Util::toAnsi(buf, DEFAULT_PLAYLIST, STRING_MAX)));
 
-    IList* pPlayList = GetPlayListsN();
+    IList* pPlayList = PlayListManager::GetInstance()->GetAllPlayListNameN();
 
    if (IsFailed(GetLastResult())) {
       AppLog("Failed to get playlist name: %s", GetErrorMessage(GetLastResult()));
@@ -61,9 +60,8 @@ v8::Handle<v8::Value> Musics::getPlaylistNames(const v8::Arguments& args) {
        IEnumerator* pListEnum = pPlayList->GetEnumeratorN();
        while (pListEnum->MoveNext() == E_SUCCESS) {
            String* playName = static_cast<String*>(pListEnum->GetCurrent());
-           char cplayname[STRING_MAX];
-           Util::toAnsi(cplayname, *playName, STRING_MAX);
-           playArray->Set(cnt++, v8::String::New(cplayname));
+           Util::toAnsi(buf, *playName, STRING_MAX);
+           playArray->Set(cnt++, v8::String::New(buf));
        }
    }
 
@@ -147,44 +145,112 @@ v8::Handle<v8::Value> Musics::getPlaylist(const v8::Arguments& args) {
     int pageNo = 1;
     int cnt = 0;
     int countPerPage = TizenContents::MAX_CONTENTSEARCH_COUNTPERPAGE;
+    int totalPageCount = 0, totalCount = 0;
     String playName = UNWRAP_STRING(args[0]).c_str();
 
-    TizenContents* pContents = new TizenContents(CONTENT_TYPE_AUDIO, pageNo, countPerPage);
+    ContentSearch search;
+    result r = search.Construct(CONTENT_TYPE_AUDIO);
+
+    if (IsFailed(r))
+    {
+        AppLog("Failed to create search instance");
+        return v8::Null();
+    }
     v8::Local<v8::Array> playArray = v8::Array::New();
-
     IList* pAudioContents = null;
-
+    char buf[STRING_MAX];
     if (playName.Equals(DEFAULT_PLAYLIST)) {
-        pAudioContents = pContents->getContentSearchList(L"");
+        pAudioContents = search.SearchN(pageNo, countPerPage, totalPageCount, totalCount, L"", L"", SORT_ORDER_NONE);
+        if (!IsFailed(GetLastResult()) && pAudioContents != null && pAudioContents->GetCount() > 0) {
+            IEnumerator* pAudioEnum = pAudioContents->GetEnumeratorN();
+            while (pAudioEnum->MoveNext() == E_SUCCESS) {
+                ContentSearchResult* pSearchInfo = static_cast<ContentSearchResult*>(pAudioEnum->GetCurrent());
+                ContentInfo* pContentInfo = static_cast<ContentInfo*>(pSearchInfo->GetContentInfo());
+                String fileName = Tizen::Io::File::GetFileName(pContentInfo->GetContentPath());
+                playArray->Set(cnt++, v8::String::New(Util::toAnsi(buf, fileName, STRING_MAX)));
+            }
+            pAudioContents->RemoveAll();
+            delete pAudioContents;
+        }
     } else {
         PlayList* pPlaylist = PlayListManager::GetInstance()->GetPlayListN(playName);
-        pAudioContents = pPlaylist->GetContentInfoListN();
-        delete pPlaylist;
-    }
-
-    if (IsFailed(GetLastResult()) == false && pAudioContents->GetCount()) {
-        IEnumerator* pAudioEnum = pAudioContents->GetEnumeratorN();
-        while (pAudioEnum->MoveNext() == E_SUCCESS) {
-            ContentInfo* pContentInfo = null;
-            if (playName.Equals(DEFAULT_PLAYLIST)) {
-                ContentSearchResult* pSearchInfo = static_cast<ContentSearchResult*>(pAudioEnum->GetCurrent());
-                pContentInfo = static_cast<ContentInfo*>(pSearchInfo->GetContentInfo());
-            } else {
-                pContentInfo = static_cast<ContentInfo*>(pAudioEnum->GetCurrent());
+        if (IsFailed(GetLastResult())) {
+            AppLog("Failed to get playlist: %s", GetErrorMessage(GetLastResult()));
+        } else {
+            pAudioContents = pPlaylist->GetContentInfoListN();
+            if (!IsFailed(GetLastResult()) && pAudioContents != null && pAudioContents->GetCount() > 0) {
+                IEnumerator* pAudioEnum = pAudioContents->GetEnumeratorN();
+                while (pAudioEnum->MoveNext() == E_SUCCESS) {
+                    ContentInfo* pContentInfo = static_cast<ContentInfo*>(pAudioEnum->GetCurrent());
+                    String fileName = Tizen::Io::File::GetFileName(pContentInfo->GetContentPath());
+                    playArray->Set(cnt++, v8::String::New(Util::toAnsi(buf, fileName, STRING_MAX)));
+                }
+                pAudioContents->RemoveAll();
+                delete pAudioContents;
             }
-            String fileName = Tizen::Io::File::GetFileName(pContentInfo->GetContentPath());
-            char buf[STRING_MAX];
-
-            playArray->Set(cnt++, v8::String::New(Util::toAnsi(buf, fileName, STRING_MAX)));
-       }
-       pAudioContents->RemoveAll();
-       delete pAudioContents;
+            delete pPlaylist;
+        }
     }
-
-    delete pContents;
     return scope.Close(playArray);
 }
 
-IList* Musics::GetPlayListsN(void) {
-    return PlayListManager::GetInstance()->GetAllPlayListNameN();
+v8::Handle<v8::Value> Musics::post( const v8::Arguments& args ) {
+    AppLog("Entered Musics::post (args length:%d)", args.Length());
+
+    if ( args.Length() < 1 || Util::isArgumentNull(args[0])) {
+        AppLog("Bad parameters");
+        return v8::ThrowException(v8::String::New("Bad parameters"));
+    }
+    v8::HandleScope scope;
+    result r = E_SUCCESS;
+    Tizen::Base::String contentPath(UNWRAP_STRING(args[0]).c_str());
+
+    ContentId contentId;
+    r = TizenContents::getContentId(contentPath, contentId);
+    if (IsFailed(r))
+    {
+       return scope.Close(v8::Boolean::New(false));
+    }
+    AppLog("Success post:%ls", contentPath.GetPointer());
+    return scope.Close(v8::Boolean::New(true));
+}
+
+v8::Handle<v8::Value> Musics::remove( const v8::Arguments& args ) {
+    AppLog("Entered Musics::remove (args length:%d)", args.Length());
+
+    if ( args.Length() < 1 || Util::isArgumentNull(args[0])) {
+        AppLog("Bad parameters");
+        return v8::ThrowException(v8::String::New("Bad parameters"));
+    }
+    v8::HandleScope scope;
+    result r = E_SUCCESS;
+    Tizen::Base::String contentPath(UNWRAP_STRING(args[0]).c_str());
+
+    r = TizenContents::removeContent(CONTENT_TYPE_AUDIO, contentPath);
+    if (IsFailed(r))
+    {
+       return scope.Close(v8::Boolean::New(false));
+    }
+    AppLog("Success remove:%ls", contentPath.GetPointer());
+    return scope.Close(v8::Boolean::New(true));
+}
+
+v8::Handle<v8::Value> Musics::moveTo( const v8::Arguments& args ) {
+    AppLog("Entered Musics::remove (args length:%d)", args.Length());
+
+    v8::HandleScope scope;
+    if ( args.Length() < 2 || Util::isArgumentNull(args[0]) || Util::isArgumentNull(args[1])) {
+        AppLog("Bad parameters");
+        return v8::ThrowException(v8::String::New("Bad parameters"));
+    }
+
+    String srcPath = UNWRAP_STRING(args[0]).c_str();
+    String destPath = UNWRAP_STRING(args[1]).c_str();
+
+    result r = TizenContents::moveContent(CONTENT_TYPE_AUDIO, srcPath, destPath);
+    if (IsFailed(r)) {
+        return scope.Close(v8::Boolean::New(false));
+    }
+    AppLog("Success move:%ls -> %ls", srcPath.GetPointer(), destPath.GetPointer());
+    return scope.Close(v8::Boolean::New(true));
 }

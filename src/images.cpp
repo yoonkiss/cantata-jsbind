@@ -18,24 +18,13 @@
 using namespace Tizen::Base::Collection;
 using namespace Tizen::Content;
 
-#define PATH_MAX 4096
-#define STRING_MAX 128
-
 void NODE_EXTERN Images::Init(v8::Handle<v8::Object> target) {
-    AppLog("Entered Images::Init");
+   AppLog("Entered Images::Init");
+   v8::Local<v8::FunctionTemplate> funcTemplate = v8::Local<v8::FunctionTemplate>::New(v8::FunctionTemplate::New(Images::New));
+   funcTemplate->SetClassName(v8::String::NewSymbol("Images"));
+   funcTemplate->Set(v8::String::NewSymbol("getAlbumlistNames"), v8::FunctionTemplate::New(getAlbumlistNames)->GetFunction());
 
-    v8::Local<v8::FunctionTemplate> funcTemplate = v8::Local<v8::FunctionTemplate>::New(v8::FunctionTemplate::New(Images::New));
-
-    funcTemplate->SetClassName(v8::String::NewSymbol("Images"));
-    funcTemplate->Set(v8::String::NewSymbol("list"), v8::Local<v8::FunctionTemplate>::New(v8::FunctionTemplate::New(list))->GetFunction());
-    funcTemplate->Set(v8::String::NewSymbol("viewMetaInfo"), v8::Local<v8::FunctionTemplate>::New(v8::FunctionTemplate::New(viewMetaInfo))->GetFunction());
-    funcTemplate->Set(v8::String::NewSymbol("remove"), v8::Local<v8::FunctionTemplate>::New(v8::FunctionTemplate::New(remove))->GetFunction());
-    funcTemplate->Set(v8::String::NewSymbol("rename"), v8::Local<v8::FunctionTemplate>::New(v8::FunctionTemplate::New(rename))->GetFunction());
-    funcTemplate->Set(v8::String::NewSymbol("moveTo"), v8::Local<v8::FunctionTemplate>::New(v8::FunctionTemplate::New(moveTo))->GetFunction());
-    funcTemplate->Set(v8::String::NewSymbol("createAlbum"), v8::Local<v8::FunctionTemplate>::New(v8::FunctionTemplate::New(createAlbum))->GetFunction());
-    funcTemplate->Set(v8::String::NewSymbol("listAlbum"), v8::Local<v8::FunctionTemplate>::New(v8::FunctionTemplate::New(listAlbum))->GetFunction());
-
-    target->Set(v8::String::NewSymbol("Images"), funcTemplate->GetFunction());
+   target->Set(v8::String::NewSymbol("Images"), funcTemplate->GetFunction());
 }
 
 v8::Handle<v8::Value> Images::New(const v8::Arguments& args) {
@@ -44,78 +33,46 @@ v8::Handle<v8::Value> Images::New(const v8::Arguments& args) {
     return args.This();
 }
 
-v8::Handle<v8::Value> Images::list(const v8::Arguments& args) {
-    AppLog("Entered Images::list (args length:%d)", args.Length());
+v8::Handle<v8::Value> Images::getAlbumlistNames(const v8::Arguments& args) {
+    AppLog("Entered Images::getAlbumlistNames (args length:%d)", args.Length());
 
-    if ( args.Length() < 3 ) {
-        AppLog("Bad parameters");
-        return v8::ThrowException(v8::String::New("Bad parameters"));
-    }
     v8::HandleScope scope;
-    result r = E_SUCCESS;
-    String whereExpr = L"";
     int cnt = 0;
-    int pageNo = 1;
-    int countPerPage = TizenContents::MAX_CONTENTSEARCH_COUNTPERPAGE;
+    char buf[STRING_MAX];
+    v8::Local<v8::Array> albumArray = v8::Array::New();
+    albumArray->Set(cnt++, v8::String::New(Util::toAnsi(buf, DEFAULT_PLAYLIST, STRING_MAX)));
 
-    whereExpr.SetCapacity(TizenContents::STRING_CAPACITY);
-
-    if(!Util::isArgumentNull(args[0])) {
-        whereExpr.Format(TizenContents::STRING_CAPACITY, L"Category LIKE '%%%s%%'", UNWRAP_STRING(args[0]).c_str());
-    } else {
-        whereExpr = L"";
-    }
-
-    if(!Util::isArgumentNull(args[1])) {
-        pageNo = args[1]->NumberValue();
-    }
-    if(!Util::isArgumentNull(args[2])) {
-        countPerPage = args[2]->NumberValue();
-    }
-    AppLog("###: %d, %d, %ls", pageNo, countPerPage, whereExpr.GetPointer());
-    TizenContents* pContents = new TizenContents(CONTENT_TYPE_IMAGE, pageNo, countPerPage);
-
-    IList* pImageContents = pContents->getContentSearchList(whereExpr);
-    if (pImageContents == null) {
-        delete pContents;
+    ContentDirectory directory;
+    result r = directory.Construct(CONTENT_TYPE_IMAGE);
+    if (IsFailed(r)) {
+        AppLog("Failed to get content directory: %s", GetErrorMessage(GetLastResult()));
         return scope.Close(v8::Undefined());
     }
 
-    v8::Local<v8::Object> fileObject = v8::Object::New();
-    v8::Local<v8::Array> fileLists = v8::Array::New();
-
-    fileObject->Set(v8::String::New("total"), v8::Number::New(pContents->getTotalCount()));
-    fileObject->Set(v8::String::New("category"), Util::isArgumentNull(args[0]) ? v8::Null() : args[0]->ToString());
-    fileObject->Set(v8::String::New("page"), v8::Number::New(pageNo));
-    fileObject->Set(v8::String::New("countperpage"), v8::Number::New(countPerPage));
-
-    IEnumerator* pImageEnum = pImageContents->GetEnumeratorN();
-    while (pImageEnum->MoveNext() == E_SUCCESS) {
-        ContentSearchResult* pSearchInfo = (ContentSearchResult*)pImageEnum->GetCurrent();
-        ContentInfo* pContentInfo = pSearchInfo->GetContentInfo();
-
-        String path = pContentInfo->GetContentPath();
-        String name = Tizen::Io::File::GetFileName(path);
-
-        if (Tizen::Io::File::IsFileExist(path)) {
-            char cname[STRING_MAX];
-            char cpath[PATH_MAX];
-
-            v8::Local<v8::Array> aFile = v8::Array::New(2);
-            aFile->Set(0, v8::String::New(Util::toAnsi(cname, name, STRING_MAX)));
-            aFile->Set(1, v8::String::New(Util::toAnsi(cpath, path, PATH_MAX)));
-            fileLists->Set(cnt++, aFile);
-        }
-        delete pSearchInfo;
+    IList* pAlbumList = directory.GetContentDirectoryPathListN(SORT_ORDER_ASCENDING);
+    r = GetLastResult();
+    if (IsFailed(r)) {
+        AppLog("Failed to get album list: %s", GetErrorMessage(r));
+        return scope.Close(v8::Undefined());
     }
 
-    fileObject->Set(v8::String::New("name"), fileLists);
+    if (pAlbumList != null && pAlbumList->GetCount()) {
+       IEnumerator* pListEnum = pAlbumList->GetEnumeratorN();
+       while (pListEnum->MoveNext() == E_SUCCESS) {
+           String* albumPath = static_cast<String*>(pListEnum->GetCurrent());
+           String albumName = Tizen::Io::File::GetFileName(*albumPath);
+           Util::toAnsi(buf, albumName, STRING_MAX);
+           albumArray->Set(cnt++, v8::String::New(buf));
+       }
+   }
 
-    delete pContents;
-    delete pImageContents;
-    return scope.Close(fileObject);
+    pAlbumList->RemoveAll(true);
+    delete pAlbumList;
+
+    return scope.Close(albumArray);
 }
 
+/*
 v8::Handle<v8::Value> Images::viewMetaInfo( const v8::Arguments& args ) {
     AppLog("Entered Images::viewInfo (args length:%d)", args.Length());
 
@@ -157,34 +114,11 @@ v8::Handle<v8::Value> Images::remove( const v8::Arguments& args ) {
     }
     v8::HandleScope scope;
     result r = E_SUCCESS;
-    Tizen::Base::String sourcePath(UNWRAP_STRING(args[0]).c_str());
+    Tizen::Base::String contentPath(UNWRAP_STRING(args[0]).c_str());
 
-    ContentManager contentManager;
-    r = contentManager.Construct();
-    if (IsFailed(r)) {
-        AppLog("Failed to create content manager");
-        return scope.Close(v8::Boolean::New(false));
-    }
-
-    ImageContentInfo sourceContentInfo;
-    ContentId sourceContentId;
-    r = sourceContentInfo.Construct(&sourcePath);
+    r = TizenContents::removeContent(contentPath);
     if (IsFailed(r))
     {
-        AppLog("Failed to get source contentInfo");
-        return scope.Close(v8::Boolean::New(false));
-    }
-    sourceContentId = contentManager.CreateContent(sourceContentInfo);
-    if (Tizen::Base::UuId::GetInvalidUuId() != sourceContentId)
-    {
-        // TODO: how to check?
-        /*AppLog("Failed to get contentInfo: %s", GetLastResult());
-        return scope.Close(v8::Boolean::New(false));*/
-    }
-    r = contentManager.DeleteContent(sourceContentId);
-    if (IsFailed(r))
-    {
-       AppLog("Failed to delete the content: %s", GetErrorMessage(GetLastResult()));
        return scope.Close(v8::Boolean::New(false));
     }
 
@@ -355,3 +289,4 @@ ContentInfo* Images::getContentInfo(String path) {
     delete pImageContents;
     return pContentInfo;
 }
+*/
