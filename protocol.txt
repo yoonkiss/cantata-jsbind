@@ -1,0 +1,45 @@
+### Image
+
+# Images.list:
+in: album = null, page = 1, page_cnt = 5
+out:
+{ 
+"total": number,
+"category": string,
+"page": number,
+"countperpage": number
+"name": [[string,string],] //name, fullpath
+}
+
+# Images.viewMetaInfo:
+in: path
+out:
+{ 
+"path": string,
+"height": number,
+"width": number,
+"cameramanufacturer": string,
+"cameramodel": string,
+"datetime": string,
+"latitude": number,
+"longitude": number,
+"software": string
+"whitebalance" : string
+}
+
+# Images.remove:
+in: path
+out: {boolean}
+
+# Images.rename:
+in: path, newname
+out: {boolean}
+
+# Images.moveTo:
+in: src_path, dest_path
+out: {boolean}
+
+# Images.createAlbum:
+in: album
+out: {boolean}
+

@@ -4,7 +4,11 @@
 #include <string>
 
 #include <v8.h>
-#include <node.h>
+//#include <node.h>
+#include <FBase.h>
+
+#define PATH_MAX 4096
+#define STRING_MAX 128
 
 class Util : node::ObjectWrap
 {
@@ -23,7 +27,10 @@ class Util : node::ObjectWrap
 		static v8::Handle<v8::Value> getParentFrom( const v8::Arguments& args );
 
 		static std::string addPath( std::string path1, std::string path2 );
-	protected:
+
+		static bool isArgumentNull(const v8::Handle<v8::Value> value);
+		static char* toAnsi(const Tizen::Base::String str);
+		static char* toAnsi(char *cstr, Tizen::Base::String str, size_t n);
 };
 
 #endif
