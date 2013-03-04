@@ -141,3 +141,9 @@ char* Util::toAnsi(char *cstr, Tizen::Base::String str, size_t n) {
     wcstombs(cstr, str.GetPointer(), n);
     return cstr;
 }
+
+char* Util::toAnsi(const int num) {
+    char *cstr = (char *) malloc( 128 );
+    sprintf(cstr, "%d", num);
+    return cstr;
+}

@@ -31,6 +31,7 @@ class Util : node::ObjectWrap
 		static bool isArgumentNull(const v8::Handle<v8::Value> value);
 		static char* toAnsi(const Tizen::Base::String str);
 		static char* toAnsi(char *cstr, Tizen::Base::String str, size_t n);
+		static char* toAnsi(const int value);
 };
 
 #endif
