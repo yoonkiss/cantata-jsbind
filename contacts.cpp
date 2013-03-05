@@ -219,7 +219,7 @@ v8::Handle<v8::Value> Contacts::isExistCategory(const v8::Arguments& args) {
 v8::Handle<v8::Value> Contacts::renameCategory(const v8::Arguments& args) {
     AppLog("Entered Contacts::renameCategory (args length:%d)", args.Length());
 
-    if (args.Length() < 2 || Util::isArgumentNull(args[0]) || Util::isArgumentNull(args[1])) {
+    if (args.Length() < 2 || Util::isArgumentNull(args[0])) {
         AppLog("Bad parameters");
         return v8::ThrowException(v8::String::New("Bad parameters"));
     }
@@ -261,10 +261,12 @@ v8::Handle<v8::Value> Contacts::renameCategory(const v8::Arguments& args) {
     return scope.Close(v8::Boolean::New(true));
 }
 
+//TODO: Is it possible to set additional information?
 v8::Handle<v8::Value> Contacts::add(const v8::Arguments& args) {
-    AppLog("Entered Contacts::renameCategory (args length:%d)", args.Length());
+    AppLog("Entered Contacts::addContact (args length:%d)", args.Length());
 
-    if (args.Length() < 2 || Util::isArgumentNull(args[0]) || Util::isArgumentNull(args[1])) {
+//    if (args.Length() < 1 || Util::isArgumentNull(args[0])) {
+    if (args.Length() < 1) {
         AppLog("Bad parameters");
         return v8::ThrowException(v8::String::New("Bad parameters"));
     }
@@ -272,37 +274,50 @@ v8::Handle<v8::Value> Contacts::add(const v8::Arguments& args) {
 
     AddressbookManager* pAddressbookManager = AddressbookManager::GetInstance();
 
-    String category = UNWRAP_STRING(args[0]).c_str();
-    String firstname = UNWRAP_STRING(args[1]).c_str();
-    String lastname = UNWRAP_STRING(args[2]).c_str();
+    String category;
+	String name;
+	String number;
 
-    Contact contact;
-
-    contact.SetValue(CONTACT_PROPERTY_ID_FIRST_NAME, firstname);
-    contact.SetValue(CONTACT_PROPERTY_ID_LAST_NAME, lastname);
-
-    if(!Util::isArgumentNull(args[3]))
+	v8::Local<v8::Object> obj = args[0]->ToObject();
+    if(args[0]->IsObject())
     {
-    	PhoneNumber number1;
-    	String num1 = UNWRAP_STRING(args[3]).c_str();
-    	number1 = PhoneNumber();
-    	number1.SetPhoneNumber(num1);
-    	contact.AddPhoneNumber(number1);
+		v8::Local<v8::Value> obj_category = obj->Get(v8::String::New("category"));
+		if(obj_category->IsString())
+		{
+			category = UNWRAP_STRING(obj_category).c_str();
+			AppLogTag("Contacts","Add Contacts: [Category:%ls]", category.GetPointer());
+		}
+
+		v8::Local<v8::Value> obj_name = obj->Get(v8::String::New("name"));
+		if(obj_name->IsString())
+		{
+			name = UNWRAP_STRING(obj_name).c_str();
+			AppLogTag("Contacts","Add Contacts: [Name:%ls]", name.GetPointer());
+		}
+	}
+
+    if(category == null || name == null)
+    {
+    	AppLogTag("Contacts","Failed to add Contact");
+    	return scope.Close(v8::Boolean::New(false));
     }
 
-    if(!Util::isArgumentNull(args[4]))
+    Contact contact;
+    contact.SetValue(CONTACT_PROPERTY_ID_FIRST_NAME, name);
+
+    v8::Local<v8::Value> obj_number = obj->Get(v8::String::New("number"));
+
+	if(!obj_number->IsNull() && obj_number->IsString())
 	{
-    	PhoneNumber number2;
-    	String num2 = UNWRAP_STRING(args[4]).c_str();
-    	number2 = PhoneNumber();
-    	number2.SetPhoneNumber(num2);
-		contact.AddPhoneNumber(number2);
+		number = UNWRAP_STRING(obj_number).c_str();
+		AppLogTag("Contacts","Add Contacts: [Number:%ls]", number.GetPointer());
+		PhoneNumber phoneNumber;
+		phoneNumber.SetPhoneNumber(number);
+		contact.AddPhoneNumber(phoneNumber);
 	}
 
     //FIND CATEGORY TO ADD AS A MEMBER
     IList* pCategoryList = pAddressbookManager->GetAllCategoriesN();
-
-	Addressbook* pAddressbook = pAddressbookManager->GetAddressbookN(DEFAULT_ADDRESSBOOK_ID);
 
 	result r = GetLastResult();
 	if (IsFailed(r)) {
