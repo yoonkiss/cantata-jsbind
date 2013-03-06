@@ -114,8 +114,17 @@ v8::Handle<v8::Value> Contacts::addCategory(const v8::Arguments& args) {
     }
     v8::HandleScope scope;
 
-    String newCategory = UNWRAP_STRING(args[0]).c_str();
-    AppLogTag("Contacts","Now add new Category:%s", &newCategory);
+    String newCategory = null;
+    if(args[0]->IsString())
+    {
+    	newCategory = UNWRAP_STRING(args[0]).c_str();
+    	AppLogTag("Contacts","Now add new Category:%ls", newCategory.GetPointer());
+    }
+
+    if(newCategory == null)
+    {
+    	AppLogTag("Contacts","category name is null");
+    }
 
     Category category;
     category.SetName(newCategory);
@@ -124,10 +133,8 @@ v8::Handle<v8::Value> Contacts::addCategory(const v8::Arguments& args) {
     pAddressbookManager->AddCategory(category, DEFAULT_ADDRESSBOOK_ID);
 
     if (IsFailed(GetLastResult())) {
-    	AppLogTag("Contacts","false");
         return scope.Close(v8::Boolean::New(false));
     } else {
-    	AppLogTag("Contacts","true:%s", &newCategory);
         return scope.Close(v8::Boolean::New(true));
     }
 }
@@ -183,10 +190,19 @@ v8::Handle<v8::Value> Contacts::isExistCategory(const v8::Arguments& args) {
         AppLog("Bad parameters");
         return v8::ThrowException(v8::String::New("Bad parameters"));
     }
+    String name = null;
     v8::HandleScope scope;
+    if(args[0]->IsString())
+    {
+    	name = UNWRAP_STRING(args[0]).c_str();
+    	AppLogTag("Contacts","check Category:%ls", name.GetPointer());
+    }
 
-    String name = UNWRAP_STRING(args[0]).c_str();
-    AppLogTag("Contacts","check Category:%s", &name);
+    if(name == null)
+    {
+    	AppLogTag("Contacts","category name is null");
+    	return scope.Close(v8::Boolean::New(false));
+    }
 
     AddressbookManager* pAddressbookManager = AddressbookManager::GetInstance();
     IList* pCategoryList = pAddressbookManager->GetAllCategoriesN();
@@ -225,8 +241,24 @@ v8::Handle<v8::Value> Contacts::renameCategory(const v8::Arguments& args) {
     }
     v8::HandleScope scope;
 
-    String category = UNWRAP_STRING(args[0]).c_str();
-    String newcategory = UNWRAP_STRING(args[1]).c_str();
+    String category = null;
+    String newcategory = null;
+    if(args[0]->IsString())
+    {
+    	category = UNWRAP_STRING(args[0]).c_str();
+    	AppLogTag("Contacts","old Category:%ls", category.GetPointer());
+    }
+    if(args[1]->IsString())
+    {
+    	newcategory = UNWRAP_STRING(args[1]).c_str();
+    	AppLogTag("Contacts","new Category:%ls", newcategory.GetPointer());
+    }
+
+    if(category == null || newcategory == null)
+	{
+		AppLogTag("Contacts","category name is null");
+		return scope.Close(v8::Boolean::New(false));
+	}
 
     AddressbookManager* pAddressbookManager = AddressbookManager::GetInstance();
     IList* pCategoryList = pAddressbookManager->GetAllCategoriesN();
