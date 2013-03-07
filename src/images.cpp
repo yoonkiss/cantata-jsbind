@@ -19,9 +19,10 @@ using namespace Tizen::Base::Collection;
 using namespace Tizen::Content;
 
 void NODE_EXTERN Images::Init(v8::Handle<v8::Object> target) {
-   AppLog("Entered Images::Init");
+   AppLog("entered Images::Init");
    v8::Local<v8::FunctionTemplate> funcTemplate = v8::Local<v8::FunctionTemplate>::New(v8::FunctionTemplate::New(Images::New));
    funcTemplate->SetClassName(v8::String::NewSymbol("Images"));
+   funcTemplate->Set(v8::String::NewSymbol("getAllImageInfo"), v8::FunctionTemplate::New(getAllImageInfo)->GetFunction());
    funcTemplate->Set(v8::String::NewSymbol("getAlbumlistNames"), v8::FunctionTemplate::New(getAlbumlistNames)->GetFunction());
 
    target->Set(v8::String::NewSymbol("Images"), funcTemplate->GetFunction());
@@ -31,6 +32,94 @@ v8::Handle<v8::Value> Images::New(const v8::Arguments& args) {
     v8::HandleScope scope;
     // nothing to do new()
     return args.This();
+}
+
+v8::Handle<v8::Value> Images::getAllImageInfo(const v8::Arguments& args) {
+    AppLog("Entered Images::getAllImageInfo");
+
+    v8::HandleScope scope;
+    v8::Local<v8::Object> imageInfoList = v8::Object::New(); // { 'imageInfo-list': [ ..., ... ] }
+    v8::Local<v8::Array> imageInfoArray = v8::Array::New(); // [ ..., ... ]
+
+    ContentSearch search;
+    search.Construct( CONTENT_TYPE_IMAGE );
+    if ( IsFailed( GetLastResult() ) ) {
+        AppLog("Failed to get ContentSearch: %s", GetErrorMessage( GetLastResult() ) );
+        return scope.Close( v8::Undefined() );
+    }
+
+    int totalPageCount = 0;
+    int totalCount = 0;
+    IList *pContentInfoList = search.SearchN(1,1,totalPageCount,totalCount,L"",L"",SORT_ORDER_NONE); // all img
+    if ( pContentInfoList == null || totalCount == 0 ) {
+        AppLog("Failed to get image content list");
+        return scope.Close( v8::Undefined() );
+    }
+
+    pContentInfoList = search.SearchN(1,totalCount,totalPageCount,totalCount,L"",L"",SORT_ORDER_NONE); // all img, must free
+    int count = pContentInfoList->GetCount();
+    if ( pContentInfoList != null && count ) {
+        int count = 0;
+        IEnumerator *pEnum = pContentInfoList->GetEnumeratorN(); // must free
+        while ( pEnum->MoveNext() == E_SUCCESS ) {
+            ContentSearchResult *pSearchResult = static_cast<ContentSearchResult*>(pEnum->GetCurrent());
+            ContentInfo *pInfo = pSearchResult->GetContentInfo();
+            ImageContentInfo *pImgInfo = null;
+            if ( pInfo->GetContentType() == CONTENT_TYPE_IMAGE ) {
+                pImgInfo = static_cast<ImageContentInfo*>(pInfo);
+            }
+
+            if ( pImgInfo != null ) { // 'image' contents
+                v8::Local<v8::Object> imageInfo = v8::Object::New();
+
+                String id = pImgInfo->GetContentId().ToString();
+                String name = pImgInfo->GetContentName();
+                String path = pImgInfo->GetContentPath();
+                String category = pImgInfo->GetCategory();
+                String keyword = pImgInfo->GetKeyword();
+                String author = pImgInfo->GetAuthor();
+                String format = pImgInfo->GetMediaFormat();
+                String rating = pImgInfo->GetRating();
+                String desc = pImgInfo->GetDescription();
+                String loctag = pImgInfo->GetLocationTag();
+
+                // set Image id
+                imageInfo->Set( v8::String::New( "id" ), v8::String::New( Util::toAnsi( id ) ) );
+
+                // set Image name
+                imageInfo->Set( v8::String::New( "name" ), v8::String::New( Util::toAnsi( name ) ) );
+
+                // set Image path
+                imageInfo->Set( v8::String::New( "path" ), v8::String::New( Util::toAnsi( path ) ) );
+
+                // set array
+                imageInfoArray->Set( count++, imageInfo );
+            }
+        }
+
+        // free
+        if ( pEnum != null ) {
+            delete pEnum;
+            pEnum = null;
+        }
+    }
+
+    // set all info
+    imageInfoList->Set( v8::String::New( "imageInfo-list" ), imageInfoArray );
+
+    // free
+    if ( pContentInfoList->GetCount() > 0 ) {
+        pContentInfoList->RemoveAll(true);
+    }
+    delete pContentInfoList;
+    pContentInfoList = null;
+
+    // all image info return
+    if ( !imageInfoList.IsEmpty() ) {
+        return scope.Close( imageInfoList );
+    }
+
+    return scope.Close( v8::Undefined() );
 }
 
 v8::Handle<v8::Value> Images::getAlbumlistNames(const v8::Arguments& args) {
