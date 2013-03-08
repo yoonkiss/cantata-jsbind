@@ -36,7 +36,7 @@ class Util : node::ObjectWrap
 		static char* toAnsi(const double num);
 		static const char* toCString(const v8::String::Utf8Value& value);
 		static const char* toCString(const v8::String::AsciiValue& value);
-		static Tizen::Base::String* toTizenString(const v8::Local<v8::String>& value);
+		static Tizen::Base::String* toTizenStringN(const v8::Local<v8::String>& value);
 };
 
 #endif

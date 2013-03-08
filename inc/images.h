@@ -25,6 +25,8 @@ class Images : node::ObjectWrap
 
         static v8::Handle<v8::Value> getAlbumlistNames(const v8::Arguments& args);
 
+        static String getTypeDescription(ImageOrientationType type);
+
 };
 
 #endif

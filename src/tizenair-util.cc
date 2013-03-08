@@ -178,9 +178,11 @@ const char* Util::toCString(const v8::String::AsciiValue& value) {
 
 /*
  * convert Tizen style string form a V8 String<br>
- * if failed then return null.
+ * if failed then return null.<br>
+ *
+ * caller must free
  */
-Tizen::Base::String* Util::toTizenString(const v8::Local<v8::String>& value) {
+Tizen::Base::String* Util::toTizenStringN(const v8::Local<v8::String>& value) {
     if ( value->Length() == 0 ) {
         return new Tizen::Base::String();
     }

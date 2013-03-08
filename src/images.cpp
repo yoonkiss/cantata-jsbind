@@ -601,17 +601,259 @@ v8::Handle<v8::Value> Images::getAllImagePathInfo(const v8::Arguments& args) {
     return scope.Close( v8::Undefined() );
 }
 
+String Images::getTypeDescription(ImageOrientationType type) {
+    Tizen::Base::String desc;
+    switch ( type ) {
+        case IMAGE_ORIENTATION_TYPE_UNKNOWN:
+            desc = L"Unknown";
+            break;
+        case IMAGE_ORIENTATION_TYPE_NORMAL:
+            desc = L"Normal";
+            break;
+        case IMAGE_ORIENTATION_TYPE_FLIP_HORIZONTAL:
+            desc = L"Flip horizontal";
+            break;
+        case IMAGE_ORIENTATION_TYPE_ROTATE_180:
+            desc = L"Rotate 180 degree";
+            break;
+        case IMAGE_ORIENTATION_TYPE_FLIP_VERTICAL:
+            desc = L"Flip vertical";
+            break;
+        case IMAGE_ORIENTATION_TYPE_TRANSPOSE:
+            desc = L"Transpose";
+            break;
+        case IMAGE_ORIENTATION_TYPE_ROTATE_90:
+            desc = L"Rotate 90 degree";
+            break;
+        case IMAGE_ORIENTATION_TYPE_TRANSVERSE:
+            desc = L"Transverse";
+            break;
+        case IMAGE_ORIENTATION_TYPE_ROTATE_270:
+            desc = L"Rotate 270 degree";
+            break;
+        default:
+            desc = L"Unknown";
+            break;
+    }
+    return desc;
+}
+
 v8::Handle<v8::Value> Images::getImageMetaInfo(const v8::Arguments& args) {
     AppLog("Entered Images::getImageMetaInfo");
+
     v8::HandleScope scope;
+    v8::Local<v8::Object> metaInfoSet = v8::Object::New(); // { 'imageMetaInfo-list' : [...] }
+    v8::Local<v8::Array> metaInfoArray = v8::Array::New(); // [ ..., ... ]
 
-    if ( args[0]->IsString() ) {
-        v8::String::Utf8Value str(args[0]);
-        const char* cstr = Util::toCString(str);
-        AppLog( cstr );
+    result r;
+    char *pResult = null;
+    String *pstr = null;
+    ImageMetadata *pImageMeta = null;
+    int count = 0;
 
-        Tizen::Base::String *pstr = Util::toTizenString( args[0]->ToString() );
-        AppLog( "%s", Util::toAnsi( *pstr ) );
+    // first args is null or undefined or no args then 'ALL' image meta info return
+    if ( args.Length() < 1 || args[0]->IsUndefined() || !args[0]->IsString() ) {
+        ContentDirectory dir;
+        dir.Construct(CONTENT_TYPE_IMAGE);
+        if ( IsFailed(GetLastResult()) ) {
+            AppLog("Failed to get ContentDirectory: %s", GetErrorMessage( GetLastResult() ) );
+            return scope.Close( v8::Undefined() );
+        }
+
+        IList *pImageDirPathList = dir.GetContentDirectoryPathListN(SORT_ORDER_ASCENDING); // must free
+        if ( IsFailed( GetLastResult() ) ) {
+            AppLog("Failed to get Content Directory Path List: %s", GetErrorMessage( GetLastResult() ) );
+            return scope.Close( v8::Undefined() );
+        }
+
+        IEnumerator *pEnum = pImageDirPathList->GetEnumeratorN(); // must free
+        while ( pEnum->MoveNext() == E_SUCCESS ) {
+            String *pPath = static_cast<String*>(pEnum->GetCurrent());
+            int itemCnt = dir.GetContentDirectoryItemCount( *pPath );
+
+            // each Item Info
+            IList *pItemInfo = dir.GetContentDirectoryItemListN( *pPath, 1, itemCnt, L"ContentType", SORT_ORDER_ASCENDING ); // must free
+            IEnumerator *pInEnum = pItemInfo->GetEnumeratorN();
+            while ( pInEnum->MoveNext() == E_SUCCESS ) {
+                ContentInfo *pInfo = static_cast<ContentInfo *>(pInEnum->GetCurrent());
+                ImageContentInfo *pImgInfo = null;
+                if ( pInfo->GetContentType() == CONTENT_TYPE_IMAGE ) {
+                    pImgInfo = static_cast<ImageContentInfo*>(pInfo);
+                }
+
+                // get each item info
+                if ( pImgInfo != null ) { // 'image' contents
+                    String path = pImgInfo->GetContentPath();
+
+                    pImageMeta  = ContentManagerUtil::GetImageMetaN( path ); // must free
+                    TryCatch( pImageMeta != null, r = E_FAILURE, "Can't get ImageMeta");
+
+                    String manufacture = pImageMeta->GetCameraManufacturer();
+                    String model = pImageMeta->GetCameraModel();
+                    String date = pImageMeta->GetDateTime();
+                    String software = pImageMeta->GetSoftware();
+                    String wbalance = pImageMeta->GetWhiteBalance();
+                    String orientation = getTypeDescription( pImageMeta->GetOrientation() );
+                    int heigth = pImageMeta->GetHeight();
+                    int width = pImageMeta->GetWidth();
+                    double lati = pImageMeta->GetLatitude();
+                    double longi = pImageMeta->GetLongitude();
+
+                    v8::Local<v8::Object> pathAndInfo = v8::Object::New();
+                    pathAndInfo->Set( v8::String::New( "path" ), v8::String::New( Util::toAnsi( path ) ) );
+
+                    v8::Local<v8::Object> metaInfo = v8::Object::New();
+
+                    // set detail info
+                    pResult = Util::toAnsi( manufacture );
+                    metaInfo->Set( v8::String::New( "camera-manufacture" ), v8::String::New( pResult ) );
+                    delete pResult;
+
+                    pResult = Util::toAnsi( model );
+                    metaInfo->Set( v8::String::New( "camera-model" ), v8::String::New( pResult ) );
+                    delete pResult;
+
+                    pResult = Util::toAnsi( date );
+                    metaInfo->Set( v8::String::New( "date" ), v8::String::New( pResult ) );
+                    delete pResult;
+
+                    pResult = Util::toAnsi( software );
+                    metaInfo->Set( v8::String::New( "software" ), v8::String::New( pResult ) );
+                    delete pResult;
+
+                    pResult = Util::toAnsi( wbalance );
+                    metaInfo->Set( v8::String::New( "white-balance" ), v8::String::New( pResult ) );
+                    delete pResult;
+
+                    pResult = Util::toAnsi( orientation );
+                    metaInfo->Set( v8::String::New( "orientation" ), v8::String::New( pResult ) );
+                    delete pResult;
+
+                    pResult = Util::toAnsi( heigth );
+                    metaInfo->Set( v8::String::New( "heigth" ), v8::String::New( pResult ) );
+                    delete pResult;
+
+                    pResult = Util::toAnsi( width );
+                    metaInfo->Set( v8::String::New( "width" ), v8::String::New( pResult ) );
+                    delete pResult;
+
+                    pResult = Util::toAnsi( lati );
+                    metaInfo->Set( v8::String::New( "lati" ), v8::String::New( pResult ) );
+                    delete pResult;
+
+                    pResult = Util::toAnsi( longi );
+                    metaInfo->Set( v8::String::New( "long" ), v8::String::New( pResult ) );
+                    delete pResult;
+
+                    pathAndInfo->Set( v8::String::New( "metaInfo" ), metaInfo );
+                    metaInfoArray->Set( count++, pathAndInfo );
+                }
+            }
+
+            // free
+            if ( pItemInfo != null ) {
+                delete pItemInfo;
+                pItemInfo = null;
+            }
+            if ( pInEnum != null ) {
+                delete pInEnum;
+                pInEnum = null;
+            }
+        }
+
+        // free
+        if ( pImageDirPathList != null ) {
+            delete pImageDirPathList;
+            pImageDirPathList = null;
+        }
+        if ( pEnum != null ) {
+            delete pEnum;
+            pEnum = null;
+        }
+    } else {
+        pstr = Util::toTizenStringN( args[0]->ToString() );  // must free
+        pImageMeta  = ContentManagerUtil::GetImageMetaN( *pstr ); // must free
+        TryCatch( pImageMeta != null, r = E_FAILURE, "Can't get ImageMeta");
+
+        String manufacture = pImageMeta->GetCameraManufacturer();
+        String model = pImageMeta->GetCameraModel();
+        String date = pImageMeta->GetDateTime();
+        String software = pImageMeta->GetSoftware();
+        String wbalance = pImageMeta->GetWhiteBalance();
+        String orientation = getTypeDescription( pImageMeta->GetOrientation() );
+        int heigth = pImageMeta->GetHeight();
+        int width = pImageMeta->GetWidth();
+        double lati = pImageMeta->GetLatitude();
+        double longi = pImageMeta->GetLongitude();
+
+        v8::Local<v8::Object> pathAndInfo = v8::Object::New();
+        pathAndInfo->Set( v8::String::New( "path" ), v8::String::New( Util::toAnsi( *pstr ) ) );
+
+        v8::Local<v8::Object> metaInfo = v8::Object::New();
+
+        // set detail info
+        pResult = Util::toAnsi( manufacture );
+        metaInfo->Set( v8::String::New( "camera-manufacture" ), v8::String::New( pResult ) );
+        delete pResult;
+
+        pResult = Util::toAnsi( model );
+        metaInfo->Set( v8::String::New( "camera-model" ), v8::String::New( pResult ) );
+        delete pResult;
+
+        pResult = Util::toAnsi( date );
+        metaInfo->Set( v8::String::New( "date" ), v8::String::New( pResult ) );
+        delete pResult;
+
+        pResult = Util::toAnsi( software );
+        metaInfo->Set( v8::String::New( "software" ), v8::String::New( pResult ) );
+        delete pResult;
+
+        pResult = Util::toAnsi( wbalance );
+        metaInfo->Set( v8::String::New( "white-balance" ), v8::String::New( pResult ) );
+        delete pResult;
+
+        pResult = Util::toAnsi( orientation );
+        metaInfo->Set( v8::String::New( "orientation" ), v8::String::New( pResult ) );
+        delete pResult;
+
+        pResult = Util::toAnsi( heigth );
+        metaInfo->Set( v8::String::New( "heigth" ), v8::String::New( pResult ) );
+        delete pResult;
+
+        pResult = Util::toAnsi( width );
+        metaInfo->Set( v8::String::New( "width" ), v8::String::New( pResult ) );
+        delete pResult;
+
+        pResult = Util::toAnsi( lati );
+        metaInfo->Set( v8::String::New( "lati" ), v8::String::New( pResult ) );
+        delete pResult;
+
+        pResult = Util::toAnsi( longi );
+        metaInfo->Set( v8::String::New( "long" ), v8::String::New( pResult ) );
+        delete pResult;
+
+        pathAndInfo->Set( v8::String::New( "metaInfo" ), metaInfo );
+        metaInfoArray->Set( count++, pathAndInfo );
+    }
+
+    // set info
+    metaInfoSet->Set( v8::String::New( "imageMetaInfo-list" ), metaInfoArray );
+
+
+CATCH:
+    // free
+    if ( pstr != null ) {
+        delete pstr;
+        pstr = null;
+    }
+    if ( pImageMeta != null ) {
+        delete pImageMeta;
+        pImageMeta = null;
+    }
+
+    // info return
+    if ( !metaInfoSet.IsEmpty() ) {
+        return scope.Close( metaInfoSet );
     }
 
     return scope.Close( v8::Undefined() );
