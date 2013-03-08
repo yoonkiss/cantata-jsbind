@@ -19,6 +19,12 @@ using namespace Tizen::Base::Collection;
 using namespace Tizen::Content;
 using namespace Tizen::Locations;
 
+/**
+ * js bind for Tizen::Content API, Image Contents
+ *
+ * @author Gyeongseok Seo {@literal <gseok.seo@gmail.com>}
+ *
+ */
 void NODE_EXTERN Images::Init(v8::Handle<v8::Object> target) {
    AppLog("entered Images::Init");
    v8::Local<v8::FunctionTemplate> funcTemplate = v8::Local<v8::FunctionTemplate>::New(v8::FunctionTemplate::New(Images::New));
@@ -252,7 +258,70 @@ v8::Handle<v8::Value> Images::getAllImageIDInfo(const v8::Arguments& args) {
     v8::HandleScope scope;
 
     v8::Local<v8::Object> imageIDInfoList = v8::Object::New();
+    v8::Local<v8::Array> imageIDInfoArray = v8::Array::New(); // [ ..., ... ]
 
+    char *pResult = null;
+
+    ContentSearch search;
+    search.Construct( CONTENT_TYPE_IMAGE );
+    if ( IsFailed( GetLastResult() ) ) {
+        AppLog("Failed to get ContentSearch: %s", GetErrorMessage( GetLastResult() ) );
+        return scope.Close( v8::Undefined() );
+    }
+
+    int totalPageCount = 0;
+    int totalCount = 0;
+    IList *pContentInfoList = search.SearchN(1,1,totalPageCount,totalCount,L"",L"",SORT_ORDER_NONE); // all img
+    if ( pContentInfoList == null || totalCount == 0 ) {
+        AppLog("Failed to get image content list");
+        return scope.Close( v8::Undefined() );
+    }
+    pContentInfoList = search.SearchN(1,totalCount,totalPageCount,totalCount,L"",L"",SORT_ORDER_NONE); // all img, must free
+    int infoLength = pContentInfoList->GetCount();
+    // set length
+    pResult = Util::toAnsi( infoLength );
+    imageIDInfoList->Set( v8::String::New( "InfoLength" ), v8::String::New( pResult ) );
+    delete pResult;
+
+    int count = 0;
+    IEnumerator *pEnum = pContentInfoList->GetEnumeratorN(); // must free
+    while ( pEnum->MoveNext() == E_SUCCESS ) {
+        ContentSearchResult *pSearchResult = static_cast<ContentSearchResult*>(pEnum->GetCurrent());
+        ContentInfo *pInfo = pSearchResult->GetContentInfo();
+        ImageContentInfo *pImgInfo = null;
+        if ( pInfo->GetContentType() == CONTENT_TYPE_IMAGE ) {
+            pImgInfo = static_cast<ImageContentInfo*>(pInfo);
+        }
+
+        if ( pImgInfo != null ) { // 'image' contents
+            v8::Local<v8::Object> imageIDInfo = v8::Object::New();
+
+            String id = pImgInfo->GetContentId().ToString();
+
+            // set Image id
+            pResult = Util::toAnsi( id );
+            imageIDInfo->Set( v8::String::New( "id" ), v8::String::New( pResult ) );
+            delete pResult;
+
+            // set array
+            imageIDInfoArray->Set( count++, imageIDInfo );
+        }
+    }
+
+    // set all info
+    imageIDInfoList->Set( v8::String::New( "imageIDInfo-list" ), imageIDInfoArray );
+
+    // free
+    if ( pContentInfoList->GetCount() > 0 ) {
+        pContentInfoList->RemoveAll(true);
+    }
+    delete pContentInfoList;
+    pContentInfoList = null;
+
+    if ( pEnum != null ) {
+        delete pEnum;
+        pEnum = null;
+    }
 
     // info return
     if ( !imageIDInfoList.IsEmpty() ) {
