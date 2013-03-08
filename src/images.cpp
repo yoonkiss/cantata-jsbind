@@ -33,6 +33,8 @@ void NODE_EXTERN Images::Init(v8::Handle<v8::Object> target) {
    funcTemplate->Set(v8::String::NewSymbol("getAllImageInfo"), v8::FunctionTemplate::New(getAllImageInfo)->GetFunction());
    funcTemplate->Set(v8::String::NewSymbol("getAllImageIDInfo"), v8::FunctionTemplate::New(getAllImageIDInfo)->GetFunction());
    funcTemplate->Set(v8::String::NewSymbol("getAllImagePathInfo"), v8::FunctionTemplate::New(getAllImagePathInfo)->GetFunction());
+   funcTemplate->Set(v8::String::NewSymbol("getImageMetaInfo"), v8::FunctionTemplate::New(getImageMetaInfo)->GetFunction());
+
    funcTemplate->Set(v8::String::NewSymbol("getAlbumlistNames"), v8::FunctionTemplate::New(getAlbumlistNames)->GetFunction());
 
    target->Set(v8::String::NewSymbol("Images"), funcTemplate->GetFunction());
@@ -599,6 +601,21 @@ v8::Handle<v8::Value> Images::getAllImagePathInfo(const v8::Arguments& args) {
     return scope.Close( v8::Undefined() );
 }
 
+v8::Handle<v8::Value> Images::getImageMetaInfo(const v8::Arguments& args) {
+    AppLog("Entered Images::getImageMetaInfo");
+    v8::HandleScope scope;
+
+    if ( args[0]->IsString() ) {
+        v8::String::Utf8Value str(args[0]);
+        const char* cstr = Util::toCString(str);
+        AppLog( cstr );
+
+        Tizen::Base::String *pstr = Util::toTizenString( args[0]->ToString() );
+        AppLog( "%s", Util::toAnsi( *pstr ) );
+    }
+
+    return scope.Close( v8::Undefined() );
+}
 
 /*
 v8::Handle<v8::Value> Images::viewMetaInfo( const v8::Arguments& args ) {

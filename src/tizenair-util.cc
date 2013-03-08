@@ -159,3 +159,33 @@ char* Util::toAnsi(const double num) {
     sprintf(cstr, "%f", num);
     return cstr;
 }
+
+/*
+ * convert C style string form a V8 Utf8Value<br>
+ * if failed then return null.
+ */
+const char* Util::toCString(const v8::String::Utf8Value& value) {
+  return *value ? *value : null;
+}
+
+/*
+ * convert C style string form a V8 AsciiValue<br>
+ * if failed then return null.
+ */
+const char* Util::toCString(const v8::String::AsciiValue& value) {
+  return *value ? *value : null;
+}
+
+/*
+ * convert Tizen style string form a V8 String<br>
+ * if failed then return null.
+ */
+Tizen::Base::String* Util::toTizenString(const v8::Local<v8::String>& value) {
+    if ( value->Length() == 0 ) {
+        return new Tizen::Base::String();
+    }
+
+    v8::String::Utf8Value v8utfstr( value->ToObject() );
+    const char *pValue = toCString( v8utfstr );
+    return new Tizen::Base::String( pValue );
+}
