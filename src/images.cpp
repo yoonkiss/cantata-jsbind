@@ -24,6 +24,8 @@ void NODE_EXTERN Images::Init(v8::Handle<v8::Object> target) {
    v8::Local<v8::FunctionTemplate> funcTemplate = v8::Local<v8::FunctionTemplate>::New(v8::FunctionTemplate::New(Images::New));
    funcTemplate->SetClassName(v8::String::NewSymbol("Images"));
    funcTemplate->Set(v8::String::NewSymbol("getAllImageInfo"), v8::FunctionTemplate::New(getAllImageInfo)->GetFunction());
+   funcTemplate->Set(v8::String::NewSymbol("getAllImageIDInfo"), v8::FunctionTemplate::New(getAllImageIDInfo)->GetFunction());
+   funcTemplate->Set(v8::String::NewSymbol("getAllImagePathInfo"), v8::FunctionTemplate::New(getAllImagePathInfo)->GetFunction());
    funcTemplate->Set(v8::String::NewSymbol("getAlbumlistNames"), v8::FunctionTemplate::New(getAlbumlistNames)->GetFunction());
 
    target->Set(v8::String::NewSymbol("Images"), funcTemplate->GetFunction());
@@ -243,6 +245,87 @@ v8::Handle<v8::Value> Images::getAlbumlistNames(const v8::Arguments& args) {
 
     return scope.Close(albumArray);
 }
+
+v8::Handle<v8::Value> Images::getAllImageIDInfo(const v8::Arguments& args) {
+    AppLog("Entered Images::getAllImageIDInfo");
+
+    v8::HandleScope scope;
+
+    v8::Local<v8::Object> imageIDInfoList = v8::Object::New();
+
+
+    // info return
+    if ( !imageIDInfoList.IsEmpty() ) {
+        return scope.Close( imageIDInfoList );
+    }
+
+    return scope.Close( v8::Undefined() );
+}
+
+v8::Handle<v8::Value> Images::getAllImagePathInfo(const v8::Arguments& args) {
+    AppLog("Entered Images::getAllImagePathInfo");
+
+    v8::HandleScope scope;
+
+    v8::Local<v8::Object> imagePathInfoList = v8::Object::New();
+    v8::Local<v8::Array> imagePathInfoArray = v8::Array::New(); // [ ..., ... ]
+
+    char *pResult = null;
+
+    ContentDirectory dir;
+    dir.Construct(CONTENT_TYPE_IMAGE);
+    if ( IsFailed(GetLastResult()) ) {
+        AppLog("Failed to get ContentDirectory: %s", GetErrorMessage( GetLastResult() ) );
+        return scope.Close( v8::Undefined() );
+    }
+
+    // set length
+    int infoLength = dir.GetContentDirectoryCount(); // get length
+    pResult = Util::toAnsi( infoLength );
+    imagePathInfoList->Set( v8::String::New( "InfoLength" ), v8::String::New( pResult ) );
+    delete pResult;
+
+    IList *pImageDirPathList = dir.GetContentDirectoryPathListN(SORT_ORDER_ASCENDING); // get 'image' dir path
+    if ( IsFailed( GetLastResult() ) ) {
+        AppLog("Failed to get Content Directory Path List: %s", GetErrorMessage( GetLastResult() ) );
+        return scope.Close( v8::Undefined() );
+    }
+    IEnumerator *pEnum = pImageDirPathList->GetEnumeratorN();
+    int count = 0;
+    while ( pEnum->MoveNext() == E_SUCCESS ) {
+        String *pPath = static_cast<String*>(pEnum->GetCurrent());
+
+        // set Path Info
+        v8::Local<v8::Object> pathInfo = v8::Object::New();
+        pResult = Util::toAnsi( *pPath );
+        pathInfo->Set( v8::String::New( "path" ), v8::String::New( pResult ) );
+        delete pResult;
+
+        // set array
+        imagePathInfoArray->Set( count++, pathInfo );
+    }
+
+    // set all info
+    imagePathInfoList->Set( v8::String::New( "imagePathInfo-list" ), imagePathInfoArray );
+
+    // free
+    if( pImageDirPathList != null ) {
+        delete pImageDirPathList;
+        pImageDirPathList = null;
+    }
+    if( pEnum != null ) {
+        delete pEnum;
+        pEnum = null;
+    }
+
+    // info return
+    if ( !imagePathInfoList.IsEmpty() ) {
+        return scope.Close( imagePathInfoList );
+    }
+
+    return scope.Close( v8::Undefined() );
+}
+
 
 /*
 v8::Handle<v8::Value> Images::viewMetaInfo( const v8::Arguments& args ) {
