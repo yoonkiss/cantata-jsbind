@@ -18,6 +18,7 @@ class Images : node::ObjectWrap
         static v8::Handle<v8::Value> list(const v8::Arguments& args);
 
         static v8::Handle<v8::Value> getAllImageInfo(const v8::Arguments& args);
+        static v8::Handle<v8::Value> getAllImageInfoToPath(const v8::Arguments& args);
         static v8::Handle<v8::Value> getAllImageIDInfo(const v8::Arguments& args);
         static v8::Handle<v8::Value> getAllImagePathInfo(const v8::Arguments& args);
 

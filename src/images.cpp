@@ -29,6 +29,7 @@ void NODE_EXTERN Images::Init(v8::Handle<v8::Object> target) {
    AppLog("entered Images::Init");
    v8::Local<v8::FunctionTemplate> funcTemplate = v8::Local<v8::FunctionTemplate>::New(v8::FunctionTemplate::New(Images::New));
    funcTemplate->SetClassName(v8::String::NewSymbol("Images"));
+   funcTemplate->Set(v8::String::NewSymbol("getAllImageInfoToPath"), v8::FunctionTemplate::New(getAllImageInfoToPath)->GetFunction());
    funcTemplate->Set(v8::String::NewSymbol("getAllImageInfo"), v8::FunctionTemplate::New(getAllImageInfo)->GetFunction());
    funcTemplate->Set(v8::String::NewSymbol("getAllImageIDInfo"), v8::FunctionTemplate::New(getAllImageIDInfo)->GetFunction());
    funcTemplate->Set(v8::String::NewSymbol("getAllImagePathInfo"), v8::FunctionTemplate::New(getAllImagePathInfo)->GetFunction());
@@ -41,6 +42,209 @@ v8::Handle<v8::Value> Images::New(const v8::Arguments& args) {
     v8::HandleScope scope;
     // nothing to do new()
     return args.This();
+}
+
+v8::Handle<v8::Value> Images::getAllImageInfoToPath(const v8::Arguments& args) {
+    AppLog("Entered Images::getAllImageInfoToPath");
+
+    v8::HandleScope scope;
+    v8::Local<v8::Object> infoSet = v8::Object::New(); // { 'pathInfoLength' : xxxx, 'infoToPath' : [] }
+    v8::Local<v8::Array> infoToPath = v8::Array::New(); // [ ..., ... ]
+    char *pResult = null;
+
+    // set info to path length
+    ContentDirectory dir;
+    dir.Construct(CONTENT_TYPE_IMAGE);
+    if ( IsFailed(GetLastResult()) ) {
+        AppLog("Failed to get ContentDirectory: %s", GetErrorMessage( GetLastResult() ) );
+        return scope.Close( v8::Undefined() );
+    }
+
+    int infoLength = dir.GetContentDirectoryCount(); // get length
+    pResult = Util::toAnsi( infoLength );
+    infoSet->Set( v8::String::New( "infoToPathLength" ), v8::String::New( pResult ) );
+    delete pResult;
+
+    // get info to path - ( path, imageInfo-list )
+    IList *pImageDirPathList = dir.GetContentDirectoryPathListN(SORT_ORDER_ASCENDING); // get 'image' dir path
+    if ( IsFailed( GetLastResult() ) ) {
+        AppLog("Failed to get Content Directory Path List: %s", GetErrorMessage( GetLastResult() ) );
+        return scope.Close( v8::Undefined() );
+    }
+    IEnumerator *pEnum = pImageDirPathList->GetEnumeratorN();
+    int count = 0;
+    while ( pEnum->MoveNext() == E_SUCCESS ) {
+        v8::Local<v8::Object> infoToPathElement = v8::Object::New();
+        v8::Local<v8::Array> imageInfoArray = v8::Array::New(); // [ ..., ... ]
+
+        // set Path Info
+        String *pPath = static_cast<String*>(pEnum->GetCurrent());
+        pResult = Util::toAnsi( *pPath );
+        infoToPathElement->Set( v8::String::New( "path" ), v8::String::New( pResult ) );
+        delete pResult;
+
+        // set image info list length
+        int itemCnt = dir.GetContentDirectoryItemCount( *pPath );
+        pResult = Util::toAnsi( itemCnt );
+        infoToPathElement->Set( v8::String::New( "imageInfo-list-length" ), v8::String::New( pResult ) );
+        delete pResult;
+
+        // each Item Info
+        IList *pItemInfo = dir.GetContentDirectoryItemListN( *pPath, 1, itemCnt, L"ContentType", SORT_ORDER_ASCENDING );
+        IEnumerator *pInEnum = pItemInfo->GetEnumeratorN();
+        int incount = 0;
+        while ( pInEnum->MoveNext() == E_SUCCESS ) {
+            ContentInfo *pInfo = static_cast<ContentInfo *>(pInEnum->GetCurrent());
+            ImageContentInfo *pImgInfo = null;
+            if ( pInfo->GetContentType() == CONTENT_TYPE_IMAGE ) {
+                pImgInfo = static_cast<ImageContentInfo*>(pInfo);
+            }
+
+            // get each item info
+            if ( pImgInfo != null ) { // 'image' contents
+                v8::Local<v8::Object> imageInfo = v8::Object::New();
+
+                String id = pImgInfo->GetContentId().ToString();
+                String name = pImgInfo->GetContentName();
+                String path = pImgInfo->GetContentPath();
+                String category = pImgInfo->GetCategory();
+                String keyword = pImgInfo->GetKeyword();
+                String author = pImgInfo->GetAuthor();
+                String format = pImgInfo->GetMediaFormat();
+                String rating = pImgInfo->GetRating();
+                String desc = pImgInfo->GetDescription();
+                String loctag = pImgInfo->GetLocationTag();
+                unsigned long size = pImgInfo->GetContentSize();
+
+                Coordinates coordinates = pImgInfo->GetCoordinates();
+                double lati = coordinates.GetLatitude();
+                double longi = coordinates.GetLongitude();
+
+                DateTime dt = pImgInfo->GetDateTime();
+                int year, month, day, hour, min, sec;
+                year = dt.GetYear();
+                month = dt.GetMonth();
+                day = dt.GetDay();
+                hour = dt.GetHour();
+                min = dt.GetMinute();
+                sec = dt.GetSecond();
+
+                // set Image id
+                pResult = Util::toAnsi( id );
+                imageInfo->Set( v8::String::New( "id" ), v8::String::New( pResult ) );
+                delete pResult;
+
+                // set Image name
+                pResult = Util::toAnsi( name );
+                imageInfo->Set( v8::String::New( "name" ), v8::String::New( pResult ) );
+                delete pResult;
+
+                // set Image path
+                pResult = Util::toAnsi( path );
+                imageInfo->Set( v8::String::New( "path" ), v8::String::New( pResult ) );
+                delete pResult;
+
+                // set Image size
+                pResult = Util::toAnsi( size );
+                imageInfo->Set( v8::String::New( "size" ), v8::String::New( pResult ) );
+                delete pResult;
+
+                // set Image category
+                pResult = Util::toAnsi( category );
+                imageInfo->Set( v8::String::New( "category" ), v8::String::New( pResult ) );
+                delete pResult;
+
+                // set Image keyword
+                pResult = Util::toAnsi( keyword );
+                imageInfo->Set( v8::String::New( "keyword" ), v8::String::New( pResult ) );
+                delete pResult;
+
+                // set Image author
+                pResult = Util::toAnsi( author );
+                imageInfo->Set( v8::String::New( "author" ), v8::String::New( pResult ) );
+                delete pResult;
+
+                // set Image format
+                pResult = Util::toAnsi( format );
+                imageInfo->Set( v8::String::New( "format" ), v8::String::New( pResult ) );
+                delete pResult;
+
+                // set Image rating
+                pResult = Util::toAnsi( rating );
+                imageInfo->Set( v8::String::New( "rating" ), v8::String::New( pResult ) );
+                delete pResult;
+
+                // set Image description
+                pResult = Util::toAnsi( desc );
+                imageInfo->Set( v8::String::New( "desc" ), v8::String::New( pResult ) );
+                delete pResult;
+
+                // set Image location tag
+                pResult = Util::toAnsi( loctag );
+                imageInfo->Set( v8::String::New( "loctag" ), v8::String::New( pResult ) );
+                delete pResult;
+
+                // set Image location coordinates
+                v8::Local<v8::Object> coordinatesInfo = v8::Object::New();
+                pResult = Util::toAnsi( lati ); // latitude
+                coordinatesInfo->Set( v8::String::New( "lati" ), v8::String::New( pResult ) );
+                delete pResult;
+
+                pResult = Util::toAnsi( longi ); // longitude
+                coordinatesInfo->Set( v8::String::New( "long" ), v8::String::New( pResult ) );
+                delete pResult;
+                imageInfo->Set( v8::String::New( "loc-coordinates" ), coordinatesInfo );
+
+                // set Image Date
+                v8::Local<v8::Object> dateInfo = v8::Object::New();
+                dateInfo->Set( v8::String::New( "year" ), v8::String::New( Util::toAnsi(year) ) );
+                dateInfo->Set( v8::String::New( "month" ), v8::String::New( Util::toAnsi(month) ) );
+                dateInfo->Set( v8::String::New( "day" ), v8::String::New( Util::toAnsi(day) ) );
+                dateInfo->Set( v8::String::New( "hour" ), v8::String::New( Util::toAnsi(hour) ) );
+                dateInfo->Set( v8::String::New( "min" ), v8::String::New( Util::toAnsi(min) ) );
+                dateInfo->Set( v8::String::New( "sec" ), v8::String::New( Util::toAnsi(sec) ) );
+                imageInfo->Set( v8::String::New( "date" ), dateInfo );
+
+                // set Array
+                imageInfoArray->Set( incount++, imageInfo );
+            }
+        }
+        // free
+        if ( pItemInfo != null ) {
+            delete pItemInfo;
+            pItemInfo = null;
+        }
+        if ( pInEnum != null ) {
+            delete pInEnum;
+            pInEnum = null;
+        }
+
+        // assemble infoToPath element
+        infoToPathElement->Set( v8::String::New( "imageInfo-list" ), imageInfoArray );
+
+        // set array
+        infoToPath->Set( count++, infoToPathElement );
+    }
+
+    // set info to path
+    infoSet->Set( v8::String::New( "infoToPath" ), infoToPath );
+
+    // free
+    if( pImageDirPathList != null ) {
+        delete pImageDirPathList;
+        pImageDirPathList = null;
+    }
+    if( pEnum != null ) {
+        delete pEnum;
+        pEnum = null;
+    }
+
+    // info return
+    if ( !infoSet.IsEmpty() ) {
+        return scope.Close( infoSet );
+    }
+
+    return scope.Close( v8::Undefined() );
 }
 
 v8::Handle<v8::Value> Images::getAllImageInfo(const v8::Arguments& args) {
@@ -280,7 +484,7 @@ v8::Handle<v8::Value> Images::getAllImageIDInfo(const v8::Arguments& args) {
     int infoLength = pContentInfoList->GetCount();
     // set length
     pResult = Util::toAnsi( infoLength );
-    imageIDInfoList->Set( v8::String::New( "InfoLength" ), v8::String::New( pResult ) );
+    imageIDInfoList->Set( v8::String::New( "infoLength" ), v8::String::New( pResult ) );
     delete pResult;
 
     int count = 0;
@@ -351,7 +555,7 @@ v8::Handle<v8::Value> Images::getAllImagePathInfo(const v8::Arguments& args) {
     // set length
     int infoLength = dir.GetContentDirectoryCount(); // get length
     pResult = Util::toAnsi( infoLength );
-    imagePathInfoList->Set( v8::String::New( "InfoLength" ), v8::String::New( pResult ) );
+    imagePathInfoList->Set( v8::String::New( "infoLength" ), v8::String::New( pResult ) );
     delete pResult;
 
     IList *pImageDirPathList = dir.GetContentDirectoryPathListN(SORT_ORDER_ASCENDING); // get 'image' dir path
