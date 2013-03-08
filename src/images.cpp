@@ -17,6 +17,7 @@
 
 using namespace Tizen::Base::Collection;
 using namespace Tizen::Content;
+using namespace Tizen::Locations;
 
 void NODE_EXTERN Images::Init(v8::Handle<v8::Object> target) {
    AppLog("entered Images::Init");
@@ -82,15 +83,97 @@ v8::Handle<v8::Value> Images::getAllImageInfo(const v8::Arguments& args) {
                 String rating = pImgInfo->GetRating();
                 String desc = pImgInfo->GetDescription();
                 String loctag = pImgInfo->GetLocationTag();
+                unsigned long size = pImgInfo->GetContentSize();
 
+                Coordinates coordinates = pImgInfo->GetCoordinates();
+                double lati = coordinates.GetLatitude();
+                double longi = coordinates.GetLongitude();
+
+                DateTime dt = pImgInfo->GetDateTime();
+                int year, month, day, hour, min, sec;
+                year = dt.GetYear();
+                month = dt.GetMonth();
+                day = dt.GetDay();
+                hour = dt.GetHour();
+                min = dt.GetMinute();
+                sec = dt.GetSecond();
+
+                char *pResult = null;
                 // set Image id
-                imageInfo->Set( v8::String::New( "id" ), v8::String::New( Util::toAnsi( id ) ) );
+                pResult = Util::toAnsi( id );
+                imageInfo->Set( v8::String::New( "id" ), v8::String::New( pResult ) );
+                delete pResult;
 
                 // set Image name
-                imageInfo->Set( v8::String::New( "name" ), v8::String::New( Util::toAnsi( name ) ) );
+                pResult = Util::toAnsi( name );
+                imageInfo->Set( v8::String::New( "name" ), v8::String::New( pResult ) );
+                delete pResult;
 
                 // set Image path
-                imageInfo->Set( v8::String::New( "path" ), v8::String::New( Util::toAnsi( path ) ) );
+                pResult = Util::toAnsi( path );
+                imageInfo->Set( v8::String::New( "path" ), v8::String::New( pResult ) );
+                delete pResult;
+
+                // set Image size
+                pResult = Util::toAnsi( size );
+                imageInfo->Set( v8::String::New( "size" ), v8::String::New( pResult ) );
+                delete pResult;
+
+                // set Image category
+                pResult = Util::toAnsi( category );
+                imageInfo->Set( v8::String::New( "category" ), v8::String::New( pResult ) );
+                delete pResult;
+
+                // set Image keyword
+                pResult = Util::toAnsi( keyword );
+                imageInfo->Set( v8::String::New( "keyword" ), v8::String::New( pResult ) );
+                delete pResult;
+
+                // set Image author
+                pResult = Util::toAnsi( author );
+                imageInfo->Set( v8::String::New( "author" ), v8::String::New( pResult ) );
+                delete pResult;
+
+                // set Image format
+                pResult = Util::toAnsi( format );
+                imageInfo->Set( v8::String::New( "format" ), v8::String::New( pResult ) );
+                delete pResult;
+
+                // set Image rating
+                pResult = Util::toAnsi( rating );
+                imageInfo->Set( v8::String::New( "rating" ), v8::String::New( pResult ) );
+                delete pResult;
+
+                // set Image description
+                pResult = Util::toAnsi( desc );
+                imageInfo->Set( v8::String::New( "desc" ), v8::String::New( pResult ) );
+                delete pResult;
+
+                // set Image location tag
+                pResult = Util::toAnsi( loctag );
+                imageInfo->Set( v8::String::New( "loctag" ), v8::String::New( pResult ) );
+                delete pResult;
+
+                // set Image location coordinates
+                v8::Local<v8::Object> coordinatesInfo = v8::Object::New();
+                pResult = Util::toAnsi( lati ); // latitude
+                coordinatesInfo->Set( v8::String::New( "lati" ), v8::String::New( pResult ) );
+                delete pResult;
+
+                pResult = Util::toAnsi( longi ); // longitude
+                coordinatesInfo->Set( v8::String::New( "long" ), v8::String::New( pResult ) );
+                delete pResult;
+                imageInfo->Set( v8::String::New( "loc-coordinates" ), coordinatesInfo );
+
+                // set Image Date
+                v8::Local<v8::Object> dateInfo = v8::Object::New();
+                dateInfo->Set( v8::String::New( "year" ), v8::String::New( Util::toAnsi(year) ) );
+                dateInfo->Set( v8::String::New( "month" ), v8::String::New( Util::toAnsi(month) ) );
+                dateInfo->Set( v8::String::New( "day" ), v8::String::New( Util::toAnsi(day) ) );
+                dateInfo->Set( v8::String::New( "hour" ), v8::String::New( Util::toAnsi(hour) ) );
+                dateInfo->Set( v8::String::New( "min" ), v8::String::New( Util::toAnsi(min) ) );
+                dateInfo->Set( v8::String::New( "sec" ), v8::String::New( Util::toAnsi(sec) ) );
+                imageInfo->Set( v8::String::New( "date" ), dateInfo );
 
                 // set array
                 imageInfoArray->Set( count++, imageInfo );

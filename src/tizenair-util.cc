@@ -147,3 +147,15 @@ char* Util::toAnsi(const int num) {
     sprintf(cstr, "%d", num);
     return cstr;
 }
+
+char* Util::toAnsi(const unsigned long num) {
+    char *cstr = (char *) malloc( 128 );
+    sprintf(cstr, "%lu", num);
+    return cstr;
+}
+
+char* Util::toAnsi(const double num) {
+    char *cstr = (char *) malloc( 128 );
+    sprintf(cstr, "%f", num);
+    return cstr;
+}
