@@ -18,6 +18,7 @@
 using namespace Tizen::Base::Collection;
 using namespace Tizen::Content;
 using namespace Tizen::Locations;
+using namespace Tizen::System;
 
 /**
  * js bind for Tizen::Content API, Image Contents
@@ -36,6 +37,7 @@ void NODE_EXTERN Images::Init(v8::Handle<v8::Object> target) {
    funcTemplate->Set(v8::String::NewSymbol("getImageMetaInfo"), v8::FunctionTemplate::New(getImageMetaInfo)->GetFunction());
    funcTemplate->Set(v8::String::NewSymbol("getImageInfoForId"), v8::FunctionTemplate::New(getImageInfoForId)->GetFunction());
    funcTemplate->Set(v8::String::NewSymbol("deleteImageForId"), v8::FunctionTemplate::New(deleteImageForId)->GetFunction());
+   funcTemplate->Set(v8::String::NewSymbol("createImage"), v8::FunctionTemplate::New(createImage)->GetFunction());
    funcTemplate->Set(v8::String::NewSymbol("getAlbumlistNames"), v8::FunctionTemplate::New(getAlbumlistNames)->GetFunction());
 
    target->Set(v8::String::NewSymbol("Images"), funcTemplate->GetFunction());
@@ -1069,6 +1071,93 @@ CATCH:
 
     return scope.Close( v8::Undefined() );
 }
+
+v8::Handle<v8::Value> Images::createImage(const v8::Arguments& args) {
+    AppLog("Entered Images::createImage");
+
+    v8::HandleScope scope;
+    v8::Local<v8::Object> infoSet = v8::Object::New();
+
+    result r;
+    String *psourcePath = null; // first arg - image source full address
+    String *pdestPath = null; // second arg - image destination full address
+    bool delSource = false;  // third arg - image source delete option
+
+    ContentManager contentManager;
+    r = contentManager.Construct();
+    TryCatch( r == E_SUCCESS, r = GetLastResult(), "ContentManager Construct failed");
+
+    if ( args.Length() < 1 || args[0]->IsUndefined() || !args[0]->IsString() ) {
+        infoSet->Set( v8::String::New( "id" ), v8::Undefined() );
+        infoSet->Set( v8::String::New( "path" ), v8::Undefined() );
+        infoSet->Set( v8::String::New( "result" ), v8::False() );
+        infoSet->Set( v8::String::New( "desc" ), v8::String::New( "first argument is full path and must input" ) );
+        goto CATCH;
+    } else {
+        char *pResult = null;
+
+        // first argument
+        psourcePath = Util::toTizenStringN( args[0]->ToString() );  // must free
+
+        // second argument
+        if ( !args[1]->IsUndefined() && args[1]->IsString() ) {
+            pdestPath = Util::toTizenStringN( args[1]->ToString() );  // must free
+        } else {
+            // default value setting
+            pResult = Util::toAnsi( *psourcePath ); // must free
+            String *pName = new String( strrchr( pResult, '/' ) ); // must free
+            pdestPath = new String( Environment::GetMediaPath() + L"Images" + *pName );
+
+            // free
+            delete pResult;
+            delete pName;
+        }
+
+        // thired argument
+        if ( !args[2]->IsUndefined() && args[2]->IsBoolean() ) {
+            delSource = args[2]->BooleanValue();
+        }
+
+        // create image operation
+        ContentId id;
+        id = contentManager.CreateContent( *psourcePath, *pdestPath, delSource, null );
+        if ( (r = GetLastResult()) != E_SUCCESS || UuId::GetInvalidUuId() == id ) {
+            infoSet->Set( v8::String::New( "id" ), v8::Undefined() );
+            infoSet->Set( v8::String::New( "path" ), v8::Undefined() );
+            infoSet->Set( v8::String::New( "result" ), v8::False() );
+            infoSet->Set( v8::String::New( "desc" ), v8::String::New( GetErrorMessage( r ) ) );
+        } else {
+            pResult = Util::toAnsi( id.ToString() );
+            infoSet->Set( v8::String::New( "id" ),  v8::String::New( pResult ) );
+            delete pResult;
+
+            pResult = Util::toAnsi( *pdestPath );
+            infoSet->Set( v8::String::New( "path" ),  v8::String::New( pResult ) );
+            delete pResult;
+
+            infoSet->Set( v8::String::New( "result" ), v8::True() );
+        }
+    }
+
+CATCH:
+    // free
+    if ( psourcePath != null ) {
+        delete psourcePath;
+        psourcePath = null;
+    }
+    if ( pdestPath != null ) {
+        delete pdestPath;
+        pdestPath = null;
+    }
+
+    // info return
+    if ( !infoSet.IsEmpty() ) {
+        return scope.Close( infoSet );
+    }
+
+    return scope.Close( v8::Undefined() );
+}
+
 
 /*
 v8::Handle<v8::Value> Images::viewMetaInfo( const v8::Arguments& args ) {
