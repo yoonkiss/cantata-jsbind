@@ -35,7 +35,7 @@ void NODE_EXTERN Images::Init(v8::Handle<v8::Object> target) {
    funcTemplate->Set(v8::String::NewSymbol("getAllImagePathInfo"), v8::FunctionTemplate::New(getAllImagePathInfo)->GetFunction());
    funcTemplate->Set(v8::String::NewSymbol("getImageMetaInfo"), v8::FunctionTemplate::New(getImageMetaInfo)->GetFunction());
    funcTemplate->Set(v8::String::NewSymbol("getImageInfoForId"), v8::FunctionTemplate::New(getImageInfoForId)->GetFunction());
-
+   funcTemplate->Set(v8::String::NewSymbol("deleteImageForId"), v8::FunctionTemplate::New(deleteImageForId)->GetFunction());
    funcTemplate->Set(v8::String::NewSymbol("getAlbumlistNames"), v8::FunctionTemplate::New(getAlbumlistNames)->GetFunction());
 
    target->Set(v8::String::NewSymbol("Images"), funcTemplate->GetFunction());
@@ -883,7 +883,6 @@ v8::Handle<v8::Value> Images::getImageInfoForId(const v8::Arguments& args) {
 
         ContentId id;
         UuId::Parse( *pstr, id );
-        AppLog( "id : %s ", Util::toAnsi(id.ToString()) );
 
         pImgInfo = contentManager.GetContentInfoN( id ); // must free
         TryCatch( pImgInfo != null, r = GetLastResult(), GetErrorMessage( r ) );
@@ -1012,6 +1011,65 @@ CATCH:
 
     return scope.Close( v8::Undefined() );
 }
+
+v8::Handle<v8::Value> Images::deleteImageForId(const v8::Arguments& args) {
+    AppLog("Entered Images::deleteImageForId");
+
+    v8::HandleScope scope;
+    v8::Local<v8::Object> infoSet = v8::Object::New();
+
+    result r;
+    String *pstr = null;
+
+    ContentManager contentManager;
+    r = contentManager.Construct();
+    TryCatch( r == E_SUCCESS, r = GetLastResult(), "ContentManager Construct failed");
+
+    if ( args.Length() < 1 || args[0]->IsUndefined() || !args[0]->IsString() ) {
+        infoSet->Set( v8::String::New( "id" ), v8::Undefined() );
+        infoSet->Set( v8::String::New( "result" ), v8::False() );
+        infoSet->Set( v8::String::New( "desc" ), v8::String::New( "wrong id value" ) );
+
+        goto CATCH;
+    } else {
+        char *pResult = null;
+        pstr = Util::toTizenStringN( args[0]->ToString() );  // must free
+        pstr->ToUpper();
+
+        ContentId id;
+        UuId::Parse( *pstr, id );
+        pResult = Util::toAnsi( id.ToString() );
+        infoSet->Set( v8::String::New( "id" ),  v8::String::New( pResult ) );
+        delete pResult;
+
+        // Deletes
+        r = contentManager.DeleteContent( id );
+        if ( IsFailed(r) )
+        {
+            infoSet->Set( v8::String::New( "result" ), v8::False() );
+            infoSet->Set( v8::String::New( "desc" ), v8::String::New( GetErrorMessage( r ) ) );
+        } else {
+            infoSet->Set( v8::String::New( "result" ), v8::True() );
+            infoSet->Set( v8::String::New( "desc" ), v8::Undefined() );
+        }
+
+    }
+
+CATCH:
+    // free
+    if ( pstr != null ) {
+        delete pstr;
+        pstr = null;
+    }
+
+    // info return
+    if ( !infoSet.IsEmpty() ) {
+        return scope.Close( infoSet );
+    }
+
+    return scope.Close( v8::Undefined() );
+}
+
 /*
 v8::Handle<v8::Value> Images::viewMetaInfo( const v8::Arguments& args ) {
     AppLog("Entered Images::viewInfo (args length:%d)", args.Length());
