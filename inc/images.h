@@ -25,6 +25,8 @@ class Images : node::ObjectWrap
         static v8::Handle<v8::Value> getImageInfoForId(const v8::Arguments& args);
         static v8::Handle<v8::Value> deleteImageForId(const v8::Arguments& args);
         static v8::Handle<v8::Value> createImage(const v8::Arguments& args);
+        static v8::Handle<v8::Value> moveImageForId(const v8::Arguments& args);
+        static v8::Handle<v8::Value> moveImageForPath(const v8::Arguments& args);
 
         static v8::Handle<v8::Value> getAlbumlistNames(const v8::Arguments& args);
 

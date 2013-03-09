@@ -38,6 +38,8 @@ void NODE_EXTERN Images::Init(v8::Handle<v8::Object> target) {
    funcTemplate->Set(v8::String::NewSymbol("getImageInfoForId"), v8::FunctionTemplate::New(getImageInfoForId)->GetFunction());
    funcTemplate->Set(v8::String::NewSymbol("deleteImageForId"), v8::FunctionTemplate::New(deleteImageForId)->GetFunction());
    funcTemplate->Set(v8::String::NewSymbol("createImage"), v8::FunctionTemplate::New(createImage)->GetFunction());
+   funcTemplate->Set(v8::String::NewSymbol("moveImageForId"), v8::FunctionTemplate::New(moveImageForId)->GetFunction());
+   funcTemplate->Set(v8::String::NewSymbol("moveImageForPath"), v8::FunctionTemplate::New(moveImageForPath)->GetFunction());
    funcTemplate->Set(v8::String::NewSymbol("getAlbumlistNames"), v8::FunctionTemplate::New(getAlbumlistNames)->GetFunction());
 
    target->Set(v8::String::NewSymbol("Images"), funcTemplate->GetFunction());
@@ -1158,6 +1160,183 @@ CATCH:
     return scope.Close( v8::Undefined() );
 }
 
+v8::Handle<v8::Value> Images::moveImageForId(const v8::Arguments& args) {
+    AppLog("Entered Images::moveImageForId");
+
+    v8::HandleScope scope;
+    v8::Local<v8::Object> infoSet = v8::Object::New();
+
+    result r;
+    String *pstr = null;
+    ContentInfo *pInfo = null;
+
+    ContentManager contentManager;
+    r = contentManager.Construct();
+    TryCatch( r == E_SUCCESS, r = GetLastResult(), "ContentManager Construct failed");
+
+    if ( args.Length() < 2 || args[0]->IsUndefined() || !args[0]->IsString() ||
+            args[1]->IsUndefined() || !args[1]->IsString()) {
+        infoSet->Set( v8::String::New( "result" ), v8::False() );
+        infoSet->Set( v8::String::New( "desc" ), v8::String::New( "wrong input value" ) );
+        goto CATCH;
+    } else {
+        char *pResult = null;
+
+        // get old id
+        pstr = Util::toTizenStringN( args[0]->ToString() );  // must free
+        pstr->ToUpper();
+
+        ContentId id;
+        UuId::Parse( *pstr, id );
+
+        // get old image info
+        pInfo = contentManager.GetContentInfoN( id ); // must free
+        if ( pInfo->GetContentType() != CONTENT_TYPE_IMAGE ) {
+            infoSet->Set( v8::String::New( "result" ), v8::False() );
+            infoSet->Set( v8::String::New( "desc" ), v8::String::New( "Not Image content" ) );
+            goto CATCH;
+        }
+
+        // get old path
+        String oldPath = pInfo->GetContentPath();
+
+        // get image file name and New path setting
+        pResult = Util::toAnsi( oldPath ); // must free
+        String *pName = new String( strrchr( pResult, '/' ) ); // must free
+        String *pInputPath = Util::toTizenStringN( args[1]->ToString() ); // must free
+        String newPath = *pInputPath + *pName;
+        delete pInputPath;
+        delete pName;
+        delete pResult;
+
+        // create image operation ( create and old image remove )
+        ContentId newId;
+        newId = contentManager.CreateContent( oldPath, newPath, true, null );
+        if ( (r = GetLastResult()) != E_SUCCESS || UuId::GetInvalidUuId() == newId ) {
+            // failed
+            infoSet->Set( v8::String::New( "result" ), v8::False() );
+            infoSet->Set( v8::String::New( "desc" ), v8::String::New( GetErrorMessage( r ) ) );
+            goto CATCH;
+        } else {
+            // success
+            pResult = Util::toAnsi( id.ToString() );
+            infoSet->Set( v8::String::New( "old-id" ),  v8::String::New( pResult ) );
+            delete pResult;
+
+            pResult = Util::toAnsi( oldPath );
+            infoSet->Set( v8::String::New( "old-path" ),  v8::String::New( pResult ) );
+            delete pResult;
+
+            pResult = Util::toAnsi( newId.ToString() );
+            infoSet->Set( v8::String::New( "new-id" ),  v8::String::New( pResult ) );
+            delete pResult;
+
+            pResult = Util::toAnsi( newPath );
+            infoSet->Set( v8::String::New( "new-path" ),  v8::String::New( pResult ) );
+            delete pResult;
+
+            infoSet->Set( v8::String::New( "result" ), v8::True() );
+        }
+    }
+
+CATCH:
+    // free
+    if ( pstr != null ) {
+        delete pstr;
+        pstr = null;
+    }
+    if ( pInfo != null ) {
+        delete pInfo;
+        pInfo = null;
+    }
+
+    // info return
+    if ( !infoSet.IsEmpty() ) {
+        return scope.Close( infoSet );
+    }
+
+    return scope.Close( v8::Undefined() );
+}
+
+v8::Handle<v8::Value> Images::moveImageForPath(const v8::Arguments& args) {
+    AppLog("Entered Images::moveImageForPath");
+
+    v8::HandleScope scope;
+    v8::Local<v8::Object> infoSet = v8::Object::New();
+
+    result r;
+    String *pstr = null;
+    ContentInfo *pInfo = null;
+
+    ContentManager contentManager;
+    r = contentManager.Construct();
+    TryCatch( r == E_SUCCESS, r = GetLastResult(), "ContentManager Construct failed");
+
+    if ( args.Length() < 2 || args[0]->IsUndefined() || !args[0]->IsString() ||
+            args[1]->IsUndefined() || !args[1]->IsString()) {
+        infoSet->Set( v8::String::New( "result" ), v8::False() );
+        infoSet->Set( v8::String::New( "desc" ), v8::String::New( "wrong input value" ) );
+        goto CATCH;
+    } else {
+        char *pResult = null;
+
+        String *oldPathN = Util::toTizenStringN( args[0]->ToString() );
+        String oldPath = *oldPathN;
+
+        // get image file name and New path setting
+        pResult = Util::toAnsi( oldPath ); // must free
+        String *pName = new String( strrchr( pResult, '/' ) ); // must free
+        String *pInputPath = Util::toTizenStringN( args[1]->ToString() ); // must free
+        String newPath = *pInputPath + *pName;
+        delete pInputPath;
+        delete pName;
+        delete pResult;
+        delete oldPathN;
+
+        // create image operation ( create and old image remove )
+        ContentId newId;
+        newId = contentManager.CreateContent( oldPath, newPath, true, null );
+        if ( (r = GetLastResult()) != E_SUCCESS || UuId::GetInvalidUuId() == newId ) {
+            // failed
+            infoSet->Set( v8::String::New( "result" ), v8::False() );
+            infoSet->Set( v8::String::New( "desc" ), v8::String::New( GetErrorMessage( r ) ) );
+            goto CATCH;
+        } else {
+            // success
+            pResult = Util::toAnsi( oldPath );
+            infoSet->Set( v8::String::New( "old-path" ),  v8::String::New( pResult ) );
+            delete pResult;
+
+            pResult = Util::toAnsi( newId.ToString() );
+            infoSet->Set( v8::String::New( "new-id" ),  v8::String::New( pResult ) );
+            delete pResult;
+
+            pResult = Util::toAnsi( newPath );
+            infoSet->Set( v8::String::New( "new-path" ),  v8::String::New( pResult ) );
+            delete pResult;
+
+            infoSet->Set( v8::String::New( "result" ), v8::True() );
+        }
+    }
+
+CATCH:
+    // free
+    if ( pstr != null ) {
+        delete pstr;
+        pstr = null;
+    }
+    if ( pInfo != null ) {
+        delete pInfo;
+        pInfo = null;
+    }
+
+    // info return
+    if ( !infoSet.IsEmpty() ) {
+        return scope.Close( infoSet );
+    }
+
+    return scope.Close( v8::Undefined() );
+}
 
 /*
 v8::Handle<v8::Value> Images::viewMetaInfo( const v8::Arguments& args ) {
