@@ -34,6 +34,7 @@ void NODE_EXTERN Images::Init(v8::Handle<v8::Object> target) {
    funcTemplate->Set(v8::String::NewSymbol("getAllImageIDInfo"), v8::FunctionTemplate::New(getAllImageIDInfo)->GetFunction());
    funcTemplate->Set(v8::String::NewSymbol("getAllImagePathInfo"), v8::FunctionTemplate::New(getAllImagePathInfo)->GetFunction());
    funcTemplate->Set(v8::String::NewSymbol("getImageMetaInfo"), v8::FunctionTemplate::New(getImageMetaInfo)->GetFunction());
+   funcTemplate->Set(v8::String::NewSymbol("getImageInfoForId"), v8::FunctionTemplate::New(getImageInfoForId)->GetFunction());
 
    funcTemplate->Set(v8::String::NewSymbol("getAlbumlistNames"), v8::FunctionTemplate::New(getAlbumlistNames)->GetFunction());
 
@@ -859,6 +860,158 @@ CATCH:
     return scope.Close( v8::Undefined() );
 }
 
+v8::Handle<v8::Value> Images::getImageInfoForId(const v8::Arguments& args) {
+    AppLog("Entered Images::getImageInfoForId");
+
+    v8::HandleScope scope;
+    v8::Local<v8::Object> infoSet = v8::Object::New();
+    v8::Local<v8::Object> imageInfo = v8::Object::New();
+
+    result r;
+    String *pstr = null;
+    ContentInfo *pImgInfo = null;
+
+    ContentManager contentManager;
+    r = contentManager.Construct();
+    TryCatch( r == E_SUCCESS, r = GetLastResult(), "ContentManager Construct failed");
+
+    if ( args.Length() < 1 || args[0]->IsUndefined() || !args[0]->IsString() ) {
+        return scope.Close( v8::Undefined() );
+    } else {
+        pstr = Util::toTizenStringN( args[0]->ToString() );  // must free
+        pstr->ToUpper();
+
+        ContentId id;
+        UuId::Parse( *pstr, id );
+        AppLog( "id : %s ", Util::toAnsi(id.ToString()) );
+
+        pImgInfo = contentManager.GetContentInfoN( id ); // must free
+        TryCatch( pImgInfo != null, r = GetLastResult(), GetErrorMessage( r ) );
+
+        String strid = pImgInfo->GetContentId().ToString();
+        String name = pImgInfo->GetContentName();
+        String path = pImgInfo->GetContentPath();
+        String category = pImgInfo->GetCategory();
+        String keyword = pImgInfo->GetKeyword();
+        String author = pImgInfo->GetAuthor();
+        String format = pImgInfo->GetMediaFormat();
+        String rating = pImgInfo->GetRating();
+        String desc = pImgInfo->GetDescription();
+        String loctag = pImgInfo->GetLocationTag();
+        unsigned long size = pImgInfo->GetContentSize();
+
+        Coordinates coordinates = pImgInfo->GetCoordinates();
+        double lati = coordinates.GetLatitude();
+        double longi = coordinates.GetLongitude();
+
+        DateTime dt = pImgInfo->GetDateTime();
+        int year, month, day, hour, min, sec;
+        year = dt.GetYear();
+        month = dt.GetMonth();
+        day = dt.GetDay();
+        hour = dt.GetHour();
+        min = dt.GetMinute();
+        sec = dt.GetSecond();
+
+        char *pResult = null;
+        // set Image id
+        pResult = Util::toAnsi( strid );
+        imageInfo->Set( v8::String::New( "id" ), v8::String::New( pResult ) );
+        delete pResult;
+
+        // set Image name
+        pResult = Util::toAnsi( name );
+        imageInfo->Set( v8::String::New( "name" ), v8::String::New( pResult ) );
+        delete pResult;
+
+        // set Image path
+        pResult = Util::toAnsi( path );
+        imageInfo->Set( v8::String::New( "path" ), v8::String::New( pResult ) );
+        delete pResult;
+
+        // set Image size
+        pResult = Util::toAnsi( size );
+        imageInfo->Set( v8::String::New( "size" ), v8::String::New( pResult ) );
+        delete pResult;
+
+        // set Image category
+        pResult = Util::toAnsi( category );
+        imageInfo->Set( v8::String::New( "category" ), v8::String::New( pResult ) );
+        delete pResult;
+
+        // set Image keyword
+        pResult = Util::toAnsi( keyword );
+        imageInfo->Set( v8::String::New( "keyword" ), v8::String::New( pResult ) );
+        delete pResult;
+
+        // set Image author
+        pResult = Util::toAnsi( author );
+        imageInfo->Set( v8::String::New( "author" ), v8::String::New( pResult ) );
+        delete pResult;
+
+        // set Image format
+        pResult = Util::toAnsi( format );
+        imageInfo->Set( v8::String::New( "format" ), v8::String::New( pResult ) );
+        delete pResult;
+
+        // set Image rating
+        pResult = Util::toAnsi( rating );
+        imageInfo->Set( v8::String::New( "rating" ), v8::String::New( pResult ) );
+        delete pResult;
+
+        // set Image description
+        pResult = Util::toAnsi( desc );
+        imageInfo->Set( v8::String::New( "desc" ), v8::String::New( pResult ) );
+        delete pResult;
+
+        // set Image location tag
+        pResult = Util::toAnsi( loctag );
+        imageInfo->Set( v8::String::New( "loctag" ), v8::String::New( pResult ) );
+        delete pResult;
+
+        // set Image location coordinates
+        v8::Local<v8::Object> coordinatesInfo = v8::Object::New();
+        pResult = Util::toAnsi( lati ); // latitude
+        coordinatesInfo->Set( v8::String::New( "lati" ), v8::String::New( pResult ) );
+        delete pResult;
+
+        pResult = Util::toAnsi( longi ); // longitude
+        coordinatesInfo->Set( v8::String::New( "long" ), v8::String::New( pResult ) );
+        delete pResult;
+        imageInfo->Set( v8::String::New( "loc-coordinates" ), coordinatesInfo );
+
+        // set Image Date
+        v8::Local<v8::Object> dateInfo = v8::Object::New();
+        dateInfo->Set( v8::String::New( "year" ), v8::String::New( Util::toAnsi(year) ) );
+        dateInfo->Set( v8::String::New( "month" ), v8::String::New( Util::toAnsi(month) ) );
+        dateInfo->Set( v8::String::New( "day" ), v8::String::New( Util::toAnsi(day) ) );
+        dateInfo->Set( v8::String::New( "hour" ), v8::String::New( Util::toAnsi(hour) ) );
+        dateInfo->Set( v8::String::New( "min" ), v8::String::New( Util::toAnsi(min) ) );
+        dateInfo->Set( v8::String::New( "sec" ), v8::String::New( Util::toAnsi(sec) ) );
+        imageInfo->Set( v8::String::New( "date" ), dateInfo );
+    }
+
+    // set info
+    infoSet->Set( v8::String::New( "imageInfo" ), imageInfo );
+
+CATCH:
+    // free
+    if ( pstr != null ) {
+        delete pstr;
+        pstr = null;
+    }
+    if ( pImgInfo != null ) {
+        delete pImgInfo;
+        pImgInfo = null;
+    }
+
+    // info return
+    if ( !infoSet.IsEmpty() ) {
+        return scope.Close( infoSet );
+    }
+
+    return scope.Close( v8::Undefined() );
+}
 /*
 v8::Handle<v8::Value> Images::viewMetaInfo( const v8::Arguments& args ) {
     AppLog("Entered Images::viewInfo (args length:%d)", args.Length());
