@@ -131,10 +131,12 @@ bool Util::isArgumentNull(const v8::Handle<v8::Value> value) {
 
 char* Util::toAnsi(Tizen::Base::String str) {
     //size_t wcstombs(char *dest, const wchar_t *src, size_t n);
-    char *cstr = (char *) malloc(str.GetLength()+1);
-    wcstombs(cstr, str.GetPointer(), str.GetLength()+1);
+    int nLen = wcstombs( NULL, str.GetPointer(), 0 );
 
-    return cstr;
+    char* pstr = (char*) malloc ( nLen + 1 );
+    wcstombs(pstr, str.GetPointer(), nLen+1);
+
+    return pstr;
 }
 
 char* Util::toAnsi(char *cstr, Tizen::Base::String str, size_t n) {
