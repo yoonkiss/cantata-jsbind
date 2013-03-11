@@ -33,6 +33,10 @@ public:
      */
     static result getContentPath(Tizen::Content::ContentType contentType, Tizen::Base::String uri, Tizen::Base::String &path);
 
+    /**
+     * Gets All ContentSearchResult List from the given content type
+     */
+    static Tizen::Base::Collection::IList* getAllContentsListN(Tizen::Content::ContentType contentType);
     static const int STRING_CAPACITY = 1024;
     static const int MAX_CONTENTSEARCH_COUNTPERPAGE = 50;
 
