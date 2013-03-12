@@ -274,3 +274,32 @@ IList* TizenContents::getAllContentsListN(Tizen::Content::ContentType contentTyp
     }
     return pContentInfoList;
 }
+
+IList* TizenContents::getAllContentsListForColumnN(Tizen::Content::ContentType contentType, Tizen::Base::String column) {
+    if ( column == null || column.IsEmpty() ) {
+        return TizenContents::getAllContentsListN( contentType );
+    }
+
+    ContentSearch search;
+    search.Construct( contentType );
+    if ( IsFailed( GetLastResult() ) ) {
+        return null;
+    }
+
+    int totalPageCount = 0;
+    int totalCount = 0;
+    IList *pContentInfoList = search.SearchN(1, 1, totalPageCount, totalCount, L"", column, SORT_ORDER_NONE);
+    if ( pContentInfoList == null || totalCount == 0 ) {
+        return null;
+    } else {
+        delete pContentInfoList;
+        pContentInfoList = null;
+    }
+
+    pContentInfoList = search.SearchN(1, totalCount, totalPageCount, totalCount, L"", column, SORT_ORDER_NONE);
+    if ( pContentInfoList == null || totalCount == 0 ) {
+        return null;
+    }
+    return pContentInfoList;
+}
+

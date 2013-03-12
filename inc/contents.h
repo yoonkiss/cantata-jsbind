@@ -37,6 +37,12 @@ public:
      * Gets All ContentSearchResult List from the given content type
      */
     static Tizen::Base::Collection::IList* getAllContentsListN(Tizen::Content::ContentType contentType);
+
+    /**
+     * Gets All ContentSearchResult List from the given content type and column<br>
+     * If column is null then same result of getAllContentListN method
+     */
+    static Tizen::Base::Collection::IList* getAllContentsListForColumnN(Tizen::Content::ContentType contentType, Tizen::Base::String column);
     static const int STRING_CAPACITY = 1024;
     static const int MAX_CONTENTSEARCH_COUNTPERPAGE = 50;
 
