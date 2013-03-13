@@ -930,6 +930,119 @@ v8::Handle<v8::Value> Musics::removePlayList(const v8::Arguments& args) {
 v8::Handle<v8::Value> Musics::updatePlayListName(const v8::Arguments& args) {
     AppLog("Entered Musics::updatePlayListName");
     v8::HandleScope scope;
+    v8::Local<v8::Object> infoSet = v8::Object::New();
+    char *pResult = null;
+    String *pstr1 = null;
+    String *pstr2 = null;
+
+    if ( args.Length() < 1 ) {
+        infoSet->Set( v8::String::New( "old-palyListName" ), v8::Undefined() );
+        infoSet->Set( v8::String::New( "new-palyListName" ), v8::Undefined() );
+        infoSet->Set( v8::String::New( "result" ), v8::False() );
+        infoSet->Set( v8::String::New( "desc" ), v8::String::New( "wrong argument" ) );
+
+        return scope.Close( infoSet );
+    } else if ( args.Length() == 1 ) {
+        if ( args[0]->IsUndefined() || !args[0]->IsString() ) {
+            infoSet->Set( v8::String::New( "old-palyListName" ), v8::Undefined() );
+        } else {
+            pstr1 = Util::toTizenStringN( args[0]->ToString() );
+            pResult = Util::toAnsi( *pstr1 );
+            infoSet->Set( v8::String::New( "old-palyListName" ), v8::String::New( pResult ) );
+            TRY_DELETE( pResult );
+        }
+        infoSet->Set( v8::String::New( "new-palyListName" ), v8::Undefined() );
+        infoSet->Set( v8::String::New( "result" ), v8::False() );
+        infoSet->Set( v8::String::New( "desc" ), v8::String::New( "wrong argument" ) );
+
+        // free
+        TRY_DELETE( pstr1 );
+        TRY_DELETE( pstr2 );
+
+        return scope.Close( infoSet );
+    } else if ( args.Length() > 1 ) {
+        if ( args[0]->IsUndefined() || !args[0]->IsString() ) {
+            infoSet->Set( v8::String::New( "old-palyListName" ), v8::Undefined() );
+        } else {
+            pstr1 = Util::toTizenStringN( args[0]->ToString() );
+            pResult = Util::toAnsi( *pstr1 );
+            infoSet->Set( v8::String::New( "old-palyListName" ), v8::String::New( pResult ) );
+            TRY_DELETE( pResult );
+        }
+
+        if ( args[1]->IsUndefined() || !args[1]->IsString() ) {
+            infoSet->Set( v8::String::New( "new-palyListName" ), v8::Undefined() );
+        } else {
+            pstr2 = Util::toTizenStringN( args[1]->ToString() );
+            pResult = Util::toAnsi( *pstr2 );
+            infoSet->Set( v8::String::New( "new-palyListName" ), v8::String::New( pResult ) );
+            TRY_DELETE( pResult );
+        }
+
+        if ( pstr1 == null || pstr2 == null ) { // wrong args
+            infoSet->Set( v8::String::New( "result" ), v8::False() );
+            infoSet->Set( v8::String::New( "desc" ), v8::String::New( "wrong argument" ) );
+
+            // free
+            TRY_DELETE( pstr1 );
+            TRY_DELETE( pstr2 );
+
+            return scope.Close( infoSet );
+        } else { // normal args
+            PlayList* pPlayList = PlayListManager::GetInstance()->GetPlayListN( *pstr1 );
+            if ( IsFailed( GetLastResult() ) ) {
+                pResult = Util::toAnsi( *pstr1 );
+                infoSet->Set( v8::String::New( "old-palyListName" ), v8::String::New( pResult ) );
+                TRY_DELETE( pResult );
+                pResult = Util::toAnsi( *pstr2 );
+                infoSet->Set( v8::String::New( "new-palyListName" ), v8::String::New( pResult ) );
+                TRY_DELETE( pResult );
+                infoSet->Set( v8::String::New( "result" ), v8::False() );
+                infoSet->Set( v8::String::New( "desc" ), v8::String::New( GetErrorMessage( GetLastResult() ) ) );
+
+                // free
+                TRY_DELETE( pstr1 );
+                TRY_DELETE( pstr2 );
+                TRY_DELETE( pPlayList );
+
+                return scope.Close( infoSet );
+            }
+
+            result r = pPlayList->SetPlayListName( *pstr2 );
+            if ( IsFailed( r ) ) {
+                pResult = Util::toAnsi( *pstr1 );
+                infoSet->Set( v8::String::New( "old-palyListName" ), v8::String::New( pResult ) );
+                TRY_DELETE( pResult );
+                pResult = Util::toAnsi( *pstr2 );
+                infoSet->Set( v8::String::New( "new-palyListName" ), v8::String::New( pResult ) );
+                TRY_DELETE( pResult );
+                infoSet->Set( v8::String::New( "result" ), v8::False() );
+                infoSet->Set( v8::String::New( "desc" ), v8::String::New( GetErrorMessage( r ) ) );
+
+                // free
+                TRY_DELETE( pstr1 );
+                TRY_DELETE( pstr2 );
+                TRY_DELETE( pPlayList );
+
+                return scope.Close( infoSet );
+            } else {
+                pResult = Util::toAnsi( *pstr1 );
+                infoSet->Set( v8::String::New( "old-palyListName" ), v8::String::New( pResult ) );
+                TRY_DELETE( pResult );
+                pResult = Util::toAnsi( *pstr2 );
+                infoSet->Set( v8::String::New( "new-palyListName" ), v8::String::New( pResult ) );
+                TRY_DELETE( pResult );
+                infoSet->Set( v8::String::New( "result" ), v8::True() );
+
+                // free
+                TRY_DELETE( pstr1 );
+                TRY_DELETE( pstr2 );
+                TRY_DELETE( pPlayList );
+
+                return scope.Close( infoSet );
+            }
+        }
+    }
 
     return scope.Close( v8::Undefined() );
 }
