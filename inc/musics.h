@@ -27,6 +27,9 @@ class Musics : node::ObjectWrap
         static v8::Handle<v8::Value> getAllMusicInfoToComposer(const v8::Arguments& args);
         static v8::Handle<v8::Value> getAllMusicInfoToGenre(const v8::Arguments& args);
 
+        // play list handle
+        static v8::Handle<v8::Value> getAllPlayListInfo(const v8::Arguments& args);
+
     private:
         static Tizen::Base::Collection::IList* GetPlayListsN(void);
         static v8::Local<v8::Object> CreateMusicObject(void);

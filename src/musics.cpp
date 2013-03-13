@@ -34,6 +34,7 @@ void NODE_EXTERN Musics::Init(v8::Handle<v8::Object> target) {
     funcTemplate->Set(v8::String::NewSymbol("getAllMusicInfoToComposer"), v8::FunctionTemplate::New(getAllMusicInfoToComposer)->GetFunction());
     funcTemplate->Set(v8::String::NewSymbol("getAllMusicInfoToGenre"), v8::FunctionTemplate::New(getAllMusicInfoToGenre)->GetFunction());
 
+    funcTemplate->Set(v8::String::NewSymbol("getAllPlayListInfo"), v8::FunctionTemplate::New(getAllPlayListInfo)->GetFunction());
     target->Set(v8::String::NewSymbol("Musics"), funcTemplate->GetFunction());
 }
 
@@ -635,3 +636,172 @@ v8::Handle<v8::Value> Musics::getAllMusicInfoToGenre(const v8::Arguments& args) 
 
     return scope.Close( v8::Undefined() );
 }
+
+v8::Handle<v8::Value> Musics::getAllPlayListInfo(const v8::Arguments& args) {
+    AppLog("Entered Musics::getAllPlayListInfo");
+    v8::HandleScope scope;
+
+    v8::Local<v8::Object> infoSet = v8::Object::New();
+    v8::Local<v8::Array> playListArray = v8::Array::New();
+    int cnt = 0;
+    char *pResult = null;
+
+    PlayListManager *pManager = PlayListManager::GetInstance();
+    if ( IsFailed( GetLastResult() ) ) {
+        AppLog("Failed to get playlist instance: %s", GetErrorMessage( GetLastResult() ) );
+        return scope.Close( v8::Undefined() );
+    }
+
+    IList *pListName = pManager->GetAllPlayListNameN(); // must free
+    if ( IsFailed( GetLastResult() ) ) {
+        AppLog("Failed to get playlist: %s", GetErrorMessage( GetLastResult() ) );
+        return scope.Close( v8::Undefined() );
+    }
+
+    // set playList count
+    int playListCount = pManager->GetAllPlayListCount();
+    pResult = Util::toAnsi( playListCount );
+    infoSet->Set( v8::String::New("playListInfo-length"), v8::String::New( pResult ) );
+    TRY_DELETE( pResult );
+
+    // set each playList info
+    IEnumerator* pListEnum = pListName->GetEnumeratorN(); // must free
+    while( pListEnum->MoveNext() == E_SUCCESS ) {
+        v8::Local<v8::Object> playList = v8::Object::New();
+        v8::Local<v8::Array> playListItemArray = v8::Array::New();
+
+        // set play list name
+        String *playListName = static_cast<String*>(pListEnum->GetCurrent());
+        pResult = Util::toAnsi( *playListName );
+        playList->Set( v8::String::New("playListName"), v8::String::New( pResult ) );
+        TRY_DELETE( pResult );
+
+        // set play list item length
+        PlayList *pPlayList = pManager->GetPlayListN( *playListName ); // must free
+        int itemCnt = pPlayList->GetPlayListItemCount();
+        pResult = Util::toAnsi( itemCnt );
+        playList->Set( v8::String::New("playListItem-length"), v8::String::New( pResult ) );
+        TRY_DELETE( pResult );
+
+        // set play list item info
+        IList *pItemList = pPlayList->GetContentInfoListN(); // must free
+        IEnumerator *pItemEnum = pItemList->GetEnumeratorN(); // must free
+        int incnt = 0;
+        while ( pItemEnum->MoveNext() == E_SUCCESS ) {
+             ContentInfo *pContentInfo = static_cast<ContentInfo*>( pItemEnum->GetCurrent() );
+             AudioContentInfo *pAudioInfo = null;
+             if ( pContentInfo->GetContentType() == CONTENT_TYPE_AUDIO ) {
+                 pAudioInfo = static_cast<AudioContentInfo*>(pContentInfo);
+             }
+
+             if ( pAudioInfo != null ) {
+                 v8::Local<v8::Object> musicInfo = v8::Object::New();
+
+                 String id = pAudioInfo->GetContentId().ToString();
+                 String path = pAudioInfo->GetContentPath();
+                 String albumName = pAudioInfo->GetAlbumName();
+                 String artist = pAudioInfo->GetArtist();
+                 String composer = pAudioInfo->GetComposer();
+                 String copyrigth = pAudioInfo->GetCopyright();
+                 String genre = pAudioInfo->GetGenre();
+                 String title = pAudioInfo->GetTitle();
+                 String trackInfo = pAudioInfo->GetTrackInfo();
+                 String rating = pAudioInfo->GetRating();
+                 int bitrate = pAudioInfo->GetBitrate();
+                 int releaseYear = pAudioInfo->GetReleaseYear();
+
+                 // set Music id
+                 pResult = Util::toAnsi( id );
+                 musicInfo->Set( v8::String::New( "id" ), v8::String::New( pResult ) );
+                 delete pResult;
+
+                 // set Music path
+                 pResult = Util::toAnsi( path );
+                 musicInfo->Set( v8::String::New( "path" ), v8::String::New( pResult ) );
+                 delete pResult;
+
+                 // set Music albumName
+                 pResult = Util::toAnsi( albumName );
+                 musicInfo->Set( v8::String::New( "album" ), v8::String::New( pResult ) );
+                 delete pResult;
+
+                 // set Music artist
+                 pResult = Util::toAnsi( artist );
+                 musicInfo->Set( v8::String::New( "artist" ), v8::String::New( pResult ) );
+                 delete pResult;
+
+                 // set Music composer
+                 pResult = Util::toAnsi( composer );
+                 musicInfo->Set( v8::String::New( "composer" ), v8::String::New( pResult ) );
+                 delete pResult;
+
+                 // set Music copyright
+                 pResult = Util::toAnsi( copyrigth );
+                 musicInfo->Set( v8::String::New( "copyrigth" ), v8::String::New( pResult ) );
+                 delete pResult;
+
+                 // set Music genre
+                 pResult = Util::toAnsi( genre );
+                 musicInfo->Set( v8::String::New( "genre" ), v8::String::New( pResult ) );
+                 delete pResult;
+
+                 // set Music title
+                 pResult = Util::toAnsi( title );
+                 musicInfo->Set( v8::String::New( "title" ), v8::String::New( pResult ) );
+                 delete pResult;
+
+                 // set Music trackInfo
+                 pResult = Util::toAnsi( trackInfo );
+                 musicInfo->Set( v8::String::New( "track-info" ), v8::String::New( pResult ) );
+                 delete pResult;
+
+                 // set Music rating
+                 pResult = Util::toAnsi( rating );
+                 musicInfo->Set( v8::String::New( "rating" ), v8::String::New( pResult ) );
+                 delete pResult;
+
+                 // set Music bitrate
+                 pResult = Util::toAnsi( bitrate );
+                 musicInfo->Set( v8::String::New( "bitrate" ), v8::String::New( pResult ) );
+                 delete pResult;
+
+                 // set Music release year
+                 pResult = Util::toAnsi( releaseYear );
+                 musicInfo->Set( v8::String::New( "release-year" ), v8::String::New( pResult ) );
+                 delete pResult;
+
+                 // set
+                 playListItemArray->Set( incnt++, musicInfo );
+             }
+        }
+        playList->Set( v8::String::New("playListItemInfo"), playListItemArray );
+
+        // set all info
+        playListArray->Set( cnt++, playList );
+
+        // free
+        TRY_DELETE( pItemEnum );
+        TRY_DELETE( pItemList );
+        TRY_DELETE( pPlayList );
+    }
+
+    // set info
+    infoSet->Set( v8::String::New("playListInfo-List"), playListArray );
+
+    // free
+    TRY_DELETE( pListEnum );
+    if ( pListName != null ) {
+        pListName->RemoveAll( true );
+        TRY_DELETE( pListName );
+    }
+
+    // return info
+    if ( !infoSet.IsEmpty() ) {
+        return scope.Close( infoSet );
+    }
+
+    return scope.Close( v8::Undefined() );
+}
+
+
+

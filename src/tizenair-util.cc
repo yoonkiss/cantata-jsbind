@@ -131,6 +131,7 @@ bool Util::isArgumentNull(const v8::Handle<v8::Value> value) {
 
 char* Util::toAnsi(Tizen::Base::String str) {
     //size_t wcstombs(char *dest, const wchar_t *src, size_t n);
+    setlocale(LC_ALL, "");
     int nLen = wcstombs( NULL, str.GetPointer(), 0 );
 
     char* pstr = (char*) malloc ( nLen + 1 );
