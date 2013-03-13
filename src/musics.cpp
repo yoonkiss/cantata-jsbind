@@ -814,8 +814,11 @@ v8::Handle<v8::Value> Musics::createPlayList(const v8::Arguments& args) {
     String *pstr = null;
 
     if ( args.Length() < 1 || args[0]->IsUndefined() || !args[0]->IsString()) {
-        AppLog("Bad parameters");
-        return v8::ThrowException( v8::String::New("Bad parameters, first parameter must inputed for new play list name, input value must String") );
+        infoSet->Set( v8::String::New( "palyListName" ), v8::Undefined() );
+        infoSet->Set( v8::String::New( "result" ), v8::False() );
+        infoSet->Set( v8::String::New( "desc" ), v8::String::New( "wrong argument" ) );
+
+        return scope.Close( infoSet );
     } else {
         // first arguments is new play list name
         pstr = Util::toTizenStringN( args[0]->ToString() );  // must free
@@ -832,18 +835,27 @@ v8::Handle<v8::Value> Musics::createPlayList(const v8::Arguments& args) {
             infoSet->Set( v8::String::New( "result" ), v8::False() );
             infoSet->Set( v8::String::New( "desc" ), v8::String::New( GetErrorMessage( r ) ) );
 
+            // free
+            TRY_DELETE( pstr );
+
             return scope.Close( infoSet );
         } else {
-            AppLog("Failed to make play list: %s", GetErrorMessage( r ) );
+            AppLog("Success to make play list: %s", GetErrorMessage( r ) );
 
             pResult = Util::toAnsi( *pstr );
             infoSet->Set( v8::String::New( "palyListName" ), v8::String::New( pResult ) );
             TRY_DELETE( pResult );
             infoSet->Set( v8::String::New( "result" ), v8::True() );
 
+            // free
+            TRY_DELETE( pstr );
+
             return scope.Close( infoSet );
         }
     }
+
+    // free
+    TRY_DELETE( pstr );
 
     return scope.Close( v8::Undefined() );
 }
@@ -851,6 +863,66 @@ v8::Handle<v8::Value> Musics::createPlayList(const v8::Arguments& args) {
 v8::Handle<v8::Value> Musics::removePlayList(const v8::Arguments& args) {
     AppLog("Entered Musics::removePlayList");
     v8::HandleScope scope;
+    v8::Local<v8::Object> infoSet = v8::Object::New();
+    char *pResult = null;
+    String *pstr = null;
+
+    if ( args.Length() < 1 || args[0]->IsUndefined() || !args[0]->IsString()) {
+        infoSet->Set( v8::String::New( "palyListName" ), v8::Undefined() );
+        infoSet->Set( v8::String::New( "result" ), v8::False() );
+        infoSet->Set( v8::String::New( "desc" ), v8::String::New( "wrong argument" ) );
+
+        return scope.Close( infoSet );
+    } else {
+        // first arguments is remove play list name
+        pstr = Util::toTizenStringN( args[0]->ToString() );  // must free
+
+        PlayListManager* pManager = PlayListManager::GetInstance();
+        if ( IsFailed( GetLastResult() ) ) {
+            pResult = Util::toAnsi( *pstr );
+            infoSet->Set( v8::String::New( "palyListName" ), v8::String::New( pResult ) );
+            TRY_DELETE( pResult );
+            infoSet->Set( v8::String::New( "result" ), v8::False() );
+            infoSet->Set( v8::String::New( "desc" ), v8::String::New( GetErrorMessage( GetLastResult() ) ) );
+
+            // free
+            TRY_DELETE( pstr );
+
+            return scope.Close( infoSet );
+        }
+
+        result r = pManager->RemovePlayList( *pstr );
+        if ( IsFailed( r ) ) {
+            AppLog("Failed to remove play list: %s", GetErrorMessage( r ) );
+
+            pResult = Util::toAnsi( *pstr );
+            infoSet->Set( v8::String::New( "palyListName" ), v8::String::New( pResult ) );
+            TRY_DELETE( pResult );
+
+            infoSet->Set( v8::String::New( "result" ), v8::False() );
+            infoSet->Set( v8::String::New( "desc" ), v8::String::New( GetErrorMessage( r ) ) );
+
+            // free
+            TRY_DELETE( pstr );
+
+            return scope.Close( infoSet );
+        } else {
+            AppLog("Success to remove play list: %s", GetErrorMessage( r ) );
+
+            pResult = Util::toAnsi( *pstr );
+            infoSet->Set( v8::String::New( "palyListName" ), v8::String::New( pResult ) );
+            TRY_DELETE( pResult );
+            infoSet->Set( v8::String::New( "result" ), v8::True() );
+
+            // free
+            TRY_DELETE( pstr );
+
+            return scope.Close( infoSet );
+        }
+    }
+
+    // free
+    TRY_DELETE( pstr );
 
     return scope.Close( v8::Undefined() );
 }
