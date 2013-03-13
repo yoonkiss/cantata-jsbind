@@ -35,6 +35,9 @@ void NODE_EXTERN Musics::Init(v8::Handle<v8::Object> target) {
     funcTemplate->Set(v8::String::NewSymbol("getAllMusicInfoToGenre"), v8::FunctionTemplate::New(getAllMusicInfoToGenre)->GetFunction());
 
     funcTemplate->Set(v8::String::NewSymbol("getAllPlayListInfo"), v8::FunctionTemplate::New(getAllPlayListInfo)->GetFunction());
+    funcTemplate->Set(v8::String::NewSymbol("createPlayList"), v8::FunctionTemplate::New(createPlayList)->GetFunction());
+    funcTemplate->Set(v8::String::NewSymbol("removePlayList"), v8::FunctionTemplate::New(removePlayList)->GetFunction());
+    funcTemplate->Set(v8::String::NewSymbol("updatePlayListName"), v8::FunctionTemplate::New(updatePlayListName)->GetFunction());
     target->Set(v8::String::NewSymbol("Musics"), funcTemplate->GetFunction());
 }
 
@@ -803,5 +806,58 @@ v8::Handle<v8::Value> Musics::getAllPlayListInfo(const v8::Arguments& args) {
     return scope.Close( v8::Undefined() );
 }
 
+v8::Handle<v8::Value> Musics::createPlayList(const v8::Arguments& args) {
+    AppLog("Entered Musics::createPlayList");
+    v8::HandleScope scope;
+    v8::Local<v8::Object> infoSet = v8::Object::New();
+    char *pResult = null;
+    String *pstr = null;
 
+    if ( args.Length() < 1 || args[0]->IsUndefined() || !args[0]->IsString()) {
+        AppLog("Bad parameters");
+        return v8::ThrowException( v8::String::New("Bad parameters, first parameter must inputed for new play list name, input value must String") );
+    } else {
+        // first arguments is new play list name
+        pstr = Util::toTizenStringN( args[0]->ToString() );  // must free
 
+        PlayList playList;
+        result r = playList.Construct( *pstr );
+        if ( IsFailed( r ) ) {
+            AppLog("Failed to make play list: %s", GetErrorMessage( r ) );
+
+            pResult = Util::toAnsi( *pstr );
+            infoSet->Set( v8::String::New( "palyListName" ), v8::String::New( pResult ) );
+            TRY_DELETE( pResult );
+
+            infoSet->Set( v8::String::New( "result" ), v8::False() );
+            infoSet->Set( v8::String::New( "desc" ), v8::String::New( GetErrorMessage( r ) ) );
+
+            return scope.Close( infoSet );
+        } else {
+            AppLog("Failed to make play list: %s", GetErrorMessage( r ) );
+
+            pResult = Util::toAnsi( *pstr );
+            infoSet->Set( v8::String::New( "palyListName" ), v8::String::New( pResult ) );
+            TRY_DELETE( pResult );
+            infoSet->Set( v8::String::New( "result" ), v8::True() );
+
+            return scope.Close( infoSet );
+        }
+    }
+
+    return scope.Close( v8::Undefined() );
+}
+
+v8::Handle<v8::Value> Musics::removePlayList(const v8::Arguments& args) {
+    AppLog("Entered Musics::removePlayList");
+    v8::HandleScope scope;
+
+    return scope.Close( v8::Undefined() );
+}
+
+v8::Handle<v8::Value> Musics::updatePlayListName(const v8::Arguments& args) {
+    AppLog("Entered Musics::updatePlayListName");
+    v8::HandleScope scope;
+
+    return scope.Close( v8::Undefined() );
+}

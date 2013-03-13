@@ -29,6 +29,9 @@ class Musics : node::ObjectWrap
 
         // play list handle
         static v8::Handle<v8::Value> getAllPlayListInfo(const v8::Arguments& args);
+        static v8::Handle<v8::Value> createPlayList(const v8::Arguments& args);
+        static v8::Handle<v8::Value> removePlayList(const v8::Arguments& args);
+        static v8::Handle<v8::Value> updatePlayListName(const v8::Arguments& args);
 
     private:
         static Tizen::Base::Collection::IList* GetPlayListsN(void);
