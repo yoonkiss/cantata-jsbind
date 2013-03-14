@@ -27,6 +27,8 @@ class Musics : node::ObjectWrap
         static v8::Handle<v8::Value> getAllMusicInfoToComposer(const v8::Arguments& args);
         static v8::Handle<v8::Value> getAllMusicInfoToGenre(const v8::Arguments& args);
 
+        static v8::Handle<v8::Value> getAllIMusicIDAndPathInfo(const v8::Arguments& args);
+
         // play list handle
         static v8::Handle<v8::Value> getAllPlayListInfo(const v8::Arguments& args);
         static v8::Handle<v8::Value> createPlayList(const v8::Arguments& args);

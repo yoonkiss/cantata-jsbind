@@ -34,6 +34,8 @@ void NODE_EXTERN Musics::Init(v8::Handle<v8::Object> target) {
     funcTemplate->Set(v8::String::NewSymbol("getAllMusicInfoToComposer"), v8::FunctionTemplate::New(getAllMusicInfoToComposer)->GetFunction());
     funcTemplate->Set(v8::String::NewSymbol("getAllMusicInfoToGenre"), v8::FunctionTemplate::New(getAllMusicInfoToGenre)->GetFunction());
 
+    funcTemplate->Set(v8::String::NewSymbol("getAllIMusicIDAndPathInfo"), v8::FunctionTemplate::New(getAllIMusicIDAndPathInfo)->GetFunction());
+
     funcTemplate->Set(v8::String::NewSymbol("getAllPlayListInfo"), v8::FunctionTemplate::New(getAllPlayListInfo)->GetFunction());
     funcTemplate->Set(v8::String::NewSymbol("createPlayList"), v8::FunctionTemplate::New(createPlayList)->GetFunction());
     funcTemplate->Set(v8::String::NewSymbol("removePlayList"), v8::FunctionTemplate::New(removePlayList)->GetFunction());
@@ -639,6 +641,68 @@ v8::Handle<v8::Value> Musics::getAllMusicInfoToGenre(const v8::Arguments& args) 
 
     return scope.Close( v8::Undefined() );
 }
+
+v8::Handle<v8::Value> Musics::getAllIMusicIDAndPathInfo(const v8::Arguments& args) {
+    AppLog("Entered Musics::getAllIMusicIDAndPathInfo");
+    v8::HandleScope scope;
+    v8::Local<v8::Object> musicInfoList = v8::Object::New();
+    v8::Local<v8::Array> musicInfoArray = v8::Array::New(); // [ ..., ... ]
+
+    char *pResult = null;
+    IList *pMusicInfoList = TizenContents::getAllContentsListN( CONTENT_TYPE_AUDIO ); // must free
+    if ( pMusicInfoList == null ) {
+        return scope.Close( v8::Undefined() );
+    }
+
+    int count = 0;
+    IEnumerator *pEnum = pMusicInfoList->GetEnumeratorN(); // must free
+    while ( pEnum->MoveNext() == E_SUCCESS ) {
+        ContentSearchResult *pSearchResult = static_cast<ContentSearchResult*>(pEnum->GetCurrent());
+        ContentInfo *pInfo = pSearchResult->GetContentInfo();
+        AudioContentInfo *pAudioInfo = null;
+        if ( pInfo->GetContentType() == CONTENT_TYPE_AUDIO ) {
+            pAudioInfo = static_cast<AudioContentInfo*>(pInfo);
+        }
+
+        if ( pAudioInfo != null ) {
+            v8::Local<v8::Object> musicInfo = v8::Object::New();
+
+            String id = pAudioInfo->GetContentId().ToString();
+            String path = pAudioInfo->GetContentPath();
+
+            // set Music id
+            pResult = Util::toAnsi( id );
+            musicInfo->Set( v8::String::New( "id" ), v8::String::New( pResult ) );
+            delete pResult;
+
+            // set Music path
+            pResult = Util::toAnsi( path );
+            musicInfo->Set( v8::String::New( "path" ), v8::String::New( pResult ) );
+            delete pResult;
+
+            // set array
+            musicInfoArray->Set( count++, musicInfo );
+        }
+    }
+
+    // set info
+    pResult = Util::toAnsi( count );
+    musicInfoList->Set( v8::String::New( "musicInfo-list-length" ), v8::String::New( pResult ) );
+    delete pResult;
+    musicInfoList->Set( v8::String::New( "musicInfo-list" ), musicInfoArray );
+
+    // free
+    TRY_DELETE( pMusicInfoList );
+    TRY_DELETE( pEnum );
+
+    // return info
+    if ( !musicInfoList.IsEmpty() ) {
+        return scope.Close( musicInfoList );
+    }
+
+    return scope.Close( v8::Undefined() );
+}
+
 
 v8::Handle<v8::Value> Musics::getAllPlayListInfo(const v8::Arguments& args) {
     AppLog("Entered Musics::getAllPlayListInfo");
