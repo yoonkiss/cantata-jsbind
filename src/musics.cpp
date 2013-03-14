@@ -40,6 +40,9 @@ void NODE_EXTERN Musics::Init(v8::Handle<v8::Object> target) {
     funcTemplate->Set(v8::String::NewSymbol("createPlayList"), v8::FunctionTemplate::New(createPlayList)->GetFunction());
     funcTemplate->Set(v8::String::NewSymbol("removePlayList"), v8::FunctionTemplate::New(removePlayList)->GetFunction());
     funcTemplate->Set(v8::String::NewSymbol("updatePlayListName"), v8::FunctionTemplate::New(updatePlayListName)->GetFunction());
+    funcTemplate->Set(v8::String::NewSymbol("addPlayListItemForId"), v8::FunctionTemplate::New(addPlayListItemForId)->GetFunction());
+    funcTemplate->Set(v8::String::NewSymbol("removePlayListItemForId"), v8::FunctionTemplate::New(removePlayListItemForId)->GetFunction());
+
     target->Set(v8::String::NewSymbol("Musics"), funcTemplate->GetFunction());
 }
 
@@ -1110,3 +1113,111 @@ v8::Handle<v8::Value> Musics::updatePlayListName(const v8::Arguments& args) {
 
     return scope.Close( v8::Undefined() );
 }
+
+
+v8::Handle<v8::Value> Musics::addPlayListItemForId(const v8::Arguments& args) {
+    AppLog("Entered Musics::addPlayListItemForId");
+    v8::HandleScope scope;
+
+    v8::Local<v8::Object> infoSet = v8::Object::New();
+    char *pResult = null;
+    String *pListName = null; // first argument - playList name
+    String *pItemId = null; // second argument - music item id
+
+    if ( args.Length() < 2 ||
+         args[0]->IsUndefined() || !args[0]->IsString() ||
+         args[1]->IsUndefined() || !args[1]->IsString() ) {
+        infoSet->Set( v8::String::New( "result" ), v8::False() );
+        infoSet->Set( v8::String::New( "desc" ), v8::String::New( "wrong argument" ) );
+
+        return scope.Close( infoSet );
+    }
+
+    // get argument
+    pListName = Util::toTizenStringN( args[0]->ToString() );
+    pResult = Util::toAnsi( *pListName );
+    TRY_DELETE( pResult );
+
+    pItemId = Util::toTizenStringN( args[1]->ToString() );
+    pResult = Util::toAnsi( *pItemId );
+    TRY_DELETE( pResult );
+
+    ContentId id;
+    UuId::Parse( *pItemId, id );
+
+    // add item in play list
+    PlayList* pPlayList = PlayListManager::GetInstance()->GetPlayListN( *pListName ); // must free
+    result r = pPlayList->AddItem( id );
+    if ( IsFailed( r ) ) {
+        AppLog("Failed to add play list: %s", GetErrorMessage( r ) );
+        infoSet->Set( v8::String::New( "result" ), v8::False() );
+        infoSet->Set( v8::String::New( "desc" ), v8::String::New( GetErrorMessage( r ) ) );
+    } else {
+        infoSet->Set( v8::String::New( "result" ), v8::True() );
+    }
+
+    // free
+    TRY_DELETE( pPlayList );
+
+    // return info
+    if ( !infoSet.IsEmpty() ) {
+        return scope.Close( infoSet );
+    }
+
+    return scope.Close( v8::Undefined() );
+}
+
+v8::Handle<v8::Value> Musics::removePlayListItemForId(const v8::Arguments& args) {
+    AppLog("Entered Musics::removePlayListItemForId");
+    v8::HandleScope scope;
+
+    v8::Local<v8::Object> infoSet = v8::Object::New();
+    char *pResult = null;
+    String *pListName = null; // first argument - playList name
+    String *pItemId = null; // second argument - music item id
+
+    // check argument
+    if ( args.Length() < 2 ||
+         args[0]->IsUndefined() || !args[0]->IsString() ||
+         args[1]->IsUndefined() || !args[1]->IsString() ) {
+        infoSet->Set( v8::String::New( "result" ), v8::False() );
+        infoSet->Set( v8::String::New( "desc" ), v8::String::New( "wrong argument" ) );
+
+        return scope.Close( infoSet );
+    }
+
+    // get argument
+    pListName = Util::toTizenStringN( args[0]->ToString() );
+    pResult = Util::toAnsi( *pListName );
+    TRY_DELETE( pResult );
+
+    pItemId = Util::toTizenStringN( args[1]->ToString() );
+    pResult = Util::toAnsi( *pItemId );
+    TRY_DELETE( pResult );
+
+    ContentId id;
+    UuId::Parse( *pItemId, id );
+
+    // remove item in play list
+    PlayList* pPlayList = PlayListManager::GetInstance()->GetPlayListN( *pListName ); // must free
+    result r = pPlayList->RemoveItem( id );
+    if ( IsFailed( r ) ) {
+        AppLog("Failed to remove play list: %s", GetErrorMessage( r ) );
+        infoSet->Set( v8::String::New( "result" ), v8::False() );
+        infoSet->Set( v8::String::New( "desc" ), v8::String::New( GetErrorMessage( r ) ) );
+    } else {
+        infoSet->Set( v8::String::New( "result" ), v8::True() );
+    }
+
+    // free
+    TRY_DELETE( pPlayList );
+
+    // return info
+    if ( !infoSet.IsEmpty() ) {
+        return scope.Close( infoSet );
+    }
+
+    return scope.Close( v8::Undefined() );
+}
+
+
