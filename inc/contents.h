@@ -23,6 +23,7 @@ public:
     int     getTotalCount() const;
 */
     static result createContent(Tizen::Base::String srcUriPath, Tizen::Base::String destUriPath, bool deleteSource, Tizen::Content::ContentId &contentId);
+    static result removeContent(Tizen::Content::ContentId id);
     static result removeContent(Tizen::Content::ContentType contentType, Tizen::Base::String contentUriPath);
     static result moveContent(Tizen::Content::ContentType contentType, Tizen::Base::String srcUriPath, Tizen::Base::String destUriPath);
     /**

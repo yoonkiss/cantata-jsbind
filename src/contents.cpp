@@ -111,6 +111,26 @@ result TizenContents::createContent(String srcUriPath, String destUriPath, bool 
     return E_SUCCESS;
 }
 
+result TizenContents::removeContent(Tizen::Content::ContentId id) {
+    result r = E_SUCCESS;
+
+    ContentManager contentManager;
+    r = contentManager.Construct();
+    if ( IsFailed( r ) ) {
+        AppLog("Failed to create content manager");
+        return r;
+    }
+
+    r = contentManager.DeleteContent( id );
+    if ( IsFailed( r ) )
+    {
+        AppLog("Failed to delete the content: %s", GetErrorMessage( GetLastResult() ) );
+        return r;
+    }
+
+    return E_SUCCESS;
+}
+
 result TizenContents::removeContent(ContentType contentType, String contentUriPath) {
     result r = E_SUCCESS;
 

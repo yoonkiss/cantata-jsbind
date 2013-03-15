@@ -781,7 +781,44 @@ CATCH:
 
 v8::Handle<v8::Value> Musics::removeMusicForId(const v8::Arguments& args) {
     AppLog("Entered Musics::removeMusicForId");
+
     v8::HandleScope scope;
+    v8::Local<v8::Object> infoSet = v8::Object::New();
+
+    result r;
+    String *pstr = null;
+
+    if ( args.Length() < 1 || args[0]->IsUndefined() || !args[0]->IsString() ) {
+        infoSet->Set( v8::String::New( "result" ), v8::False() );
+        infoSet->Set( v8::String::New( "desc" ), v8::String::New( "wrong id value" ) );
+
+        goto CATCH;
+    } else {
+        pstr = Util::toTizenStringN( args[0]->ToString() );  // must free
+        pstr->ToUpper();
+
+        ContentId id;
+        UuId::Parse( *pstr, id );
+
+        // Delete
+        r = TizenContents::removeContent( id );
+        if ( IsFailed(r) )
+        {
+            infoSet->Set( v8::String::New( "result" ), v8::False() );
+            infoSet->Set( v8::String::New( "desc" ), v8::String::New( GetErrorMessage( r ) ) );
+        } else {
+            infoSet->Set( v8::String::New( "result" ), v8::True() );
+        }
+    }
+
+CATCH:
+    // free
+    TRY_DELETE( pstr );
+
+    // info return
+    if ( !infoSet.IsEmpty() ) {
+        return scope.Close( infoSet );
+    }
 
     return scope.Close( v8::Undefined() );
 }
