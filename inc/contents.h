@@ -5,6 +5,9 @@
 #include <FContent.h>
 #include <FSystem.h>
 
+#include "tizenair-common.h"
+#include "tizenair-util.h"
+
 class TizenContents {
 public:
 /*
@@ -24,8 +27,15 @@ public:
 */
     static result createContent(Tizen::Base::String srcUriPath, Tizen::Base::String destUriPath, bool deleteSource, Tizen::Content::ContentId &contentId);
     static result removeContent(Tizen::Content::ContentId id);
-    static result removeContent(Tizen::Content::ContentType contentType, Tizen::Base::String contentUriPath);
+    static result removeContent(Tizen::Content::ContentType type, Tizen::Base::String path);
     static result moveContent(Tizen::Content::ContentType contentType, Tizen::Base::String srcUriPath, Tizen::Base::String destUriPath);
+
+    /**
+     * Gets content id from given type and path<br>
+     * path is souces's full path<br>
+     */
+    static result getContentId(Tizen::Content::ContentType type, Tizen::Base::String path, Tizen::Content::ContentId &id);
+
     /**
      * Gets content id from the given full source path.
      */

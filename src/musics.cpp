@@ -39,8 +39,9 @@ void NODE_EXTERN Musics::Init(v8::Handle<v8::Object> target) {
 
     funcTemplate->Set(v8::String::NewSymbol("createMusic"), v8::FunctionTemplate::New(createMusic)->GetFunction());
     funcTemplate->Set(v8::String::NewSymbol("removeMusicForId"), v8::FunctionTemplate::New(removeMusicForId)->GetFunction());
-    funcTemplate->Set(v8::String::NewSymbol("moveMusicForPath"), v8::FunctionTemplate::New(moveMusicForPath)->GetFunction());
+    funcTemplate->Set(v8::String::NewSymbol("removeMusicForPath"), v8::FunctionTemplate::New(removeMusicForPath)->GetFunction());
     funcTemplate->Set(v8::String::NewSymbol("moveMusicForId"), v8::FunctionTemplate::New(moveMusicForId)->GetFunction());
+    funcTemplate->Set(v8::String::NewSymbol("moveMusicForPath"), v8::FunctionTemplate::New(moveMusicForPath)->GetFunction());
 
     funcTemplate->Set(v8::String::NewSymbol("getAllPlayListInfo"), v8::FunctionTemplate::New(getAllPlayListInfo)->GetFunction());
     funcTemplate->Set(v8::String::NewSymbol("createPlayList"), v8::FunctionTemplate::New(createPlayList)->GetFunction());
@@ -247,7 +248,7 @@ v8::Handle<v8::Value> Musics::remove( const v8::Arguments& args ) {
     result r = E_SUCCESS;
     Tizen::Base::String contentPath(UNWRAP_STRING(args[0]).c_str());
 
-    r = TizenContents::removeContent(CONTENT_TYPE_AUDIO, contentPath);
+    r = TizenContents::removeContent( CONTENT_TYPE_AUDIO, contentPath );
     if (IsFailed(r))
     {
        return scope.Close(v8::Boolean::New(false));
@@ -823,9 +824,42 @@ CATCH:
     return scope.Close( v8::Undefined() );
 }
 
-v8::Handle<v8::Value> Musics::moveMusicForPath(const v8::Arguments& args) {
-    AppLog("Entered Musics::moveMusicForPath");
+v8::Handle<v8::Value> Musics::removeMusicForPath(const v8::Arguments& args) {
+    AppLog("Entered Musics::removeMusicForPath");
+
     v8::HandleScope scope;
+    v8::Local<v8::Object> infoSet = v8::Object::New();
+
+    result r;
+    String *pstr = null;
+
+    if ( args.Length() < 1 || args[0]->IsUndefined() || !args[0]->IsString() ) {
+        infoSet->Set( v8::String::New( "result" ), v8::False() );
+        infoSet->Set( v8::String::New( "desc" ), v8::String::New( "wrong path value" ) );
+
+        goto CATCH;
+    } else {
+        pstr = Util::toTizenStringN( args[0]->ToString() );  // must free
+
+        // Delete
+        r = TizenContents::removeContent( CONTENT_TYPE_AUDIO, *pstr );
+        if ( IsFailed(r) )
+        {
+            infoSet->Set( v8::String::New( "result" ), v8::False() );
+            infoSet->Set( v8::String::New( "desc" ), v8::String::New( GetErrorMessage( r ) ) );
+        } else {
+            infoSet->Set( v8::String::New( "result" ), v8::True() );
+        }
+    }
+
+CATCH:
+    // free
+    TRY_DELETE( pstr );
+
+    // info return
+    if ( !infoSet.IsEmpty() ) {
+        return scope.Close( infoSet );
+    }
 
     return scope.Close( v8::Undefined() );
 }
@@ -836,6 +870,14 @@ v8::Handle<v8::Value> Musics::moveMusicForId(const v8::Arguments& args) {
 
     return scope.Close( v8::Undefined() );
 }
+
+v8::Handle<v8::Value> Musics::moveMusicForPath(const v8::Arguments& args) {
+    AppLog("Entered Musics::moveMusicForPath");
+    v8::HandleScope scope;
+
+    return scope.Close( v8::Undefined() );
+}
+
 
 v8::Handle<v8::Value> Musics::getAllPlayListInfo(const v8::Arguments& args) {
     AppLog("Entered Musics::getAllPlayListInfo");

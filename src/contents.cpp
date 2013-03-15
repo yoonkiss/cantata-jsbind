@@ -131,7 +131,7 @@ result TizenContents::removeContent(Tizen::Content::ContentId id) {
     return E_SUCCESS;
 }
 
-result TizenContents::removeContent(ContentType contentType, String contentUriPath) {
+result TizenContents::removeContent(Tizen::Content::ContentType type, Tizen::Base::String path) {
     result r = E_SUCCESS;
 
     ContentManager contentManager;
@@ -140,20 +140,21 @@ result TizenContents::removeContent(ContentType contentType, String contentUriPa
         AppLog("Failed to create content manager");
         return r;
     }
+
     ContentId contentid;
-    String contentFullPath = L"";
-    r = getContentPath(contentType, contentUriPath, contentFullPath);
-    if (!IsFailed(r)) {
-        r = getContentId(contentFullPath, contentid);
-        if (!IsFailed(r)) {
-            r = contentManager.DeleteContent(contentid);
-            if (IsFailed(r))
-            {
-               AppLog("Failed to delete the content: %s", GetErrorMessage(GetLastResult()));
-               return r;
-            }
+    r = getContentId( type, path, contentid );
+    if (IsFailed(r)) {
+        AppLog("Failed to get content id");
+        return r;
+    } else {
+        r = contentManager.DeleteContent( contentid );
+        if ( IsFailed( r ) )
+        {
+           AppLog( "Failed to delete the content: %s", GetErrorMessage( GetLastResult() ) );
+           return r;
         }
     }
+
     return E_SUCCESS;
 }
 
@@ -200,6 +201,59 @@ result TizenContents::moveContent(ContentType contentType, String srcUriPath, St
     ContentId contentId = contentManager.CreateContent(srcFullPath, destFullPath, true, null);
     return GetLastResult();
 }
+
+result TizenContents::getContentId(ContentType type, String path, ContentId &id) {
+    result r = E_SUCCESS;
+
+    if ( path.IsEmpty() ) {
+        AppLog("Failed to getContentId: wrong path value inputed");
+        return E_FAILURE;
+    }
+
+    ContentSearch search;
+    r = search.Construct( type );
+    if ( IsFailed( r ) ) {
+        AppLog("Failed to create ContentSearch: %s", GetErrorMessage( r ) );
+        return r;
+    }
+
+    int totalPageCount = 0;
+    int totalCount = 0;
+    IList *pContentInfoList = search.SearchN(1,1,totalPageCount,totalCount,L"",L"",SORT_ORDER_NONE); // all content
+    r = GetLastResult();
+    if ( IsFailed( r ) || pContentInfoList == null || totalCount == 0 ) {
+        AppLog("Failed to get content list");
+        return r;
+    }
+    // free
+    TRY_DELETE( pContentInfoList );
+    // get all content in one page
+    pContentInfoList = search.SearchN(1,totalCount,totalPageCount,totalCount,L"",L"",SORT_ORDER_NONE); // all content
+    IEnumerator *pEnum = pContentInfoList->GetEnumeratorN(); // must free
+    bool bfind = false;
+    while ( pEnum->MoveNext() == E_SUCCESS ) {
+        ContentSearchResult *pSearchResult = static_cast<ContentSearchResult*>(pEnum->GetCurrent());
+        ContentInfo *pInfo = pSearchResult->GetContentInfo();
+
+        if ( type == pInfo->GetContentType() &&
+                path.Equals( pInfo->GetContentPath() ) ) {
+            id = pInfo->GetContentId();
+            bfind = true;
+            break;
+        }
+    }
+
+    // free
+    TRY_DELETE( pEnum );
+    TRY_DELETE( pContentInfoList );
+
+    if ( !bfind ) {
+        return E_FAILURE;
+    }
+
+    return E_SUCCESS;
+}
+
 
 result TizenContents::getContentId(String contentPath, ContentId &contentId) {
     result r = E_SUCCESS;
