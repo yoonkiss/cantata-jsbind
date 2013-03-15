@@ -91,6 +91,26 @@ IList* TizenContents::getContentDirectoryItemList(String contentDirectoryPath) {
 }
 */
 
+result TizenContents::createContent(String srcUriPath, String destUriPath, bool deleteSource, ContentId &contentId) {
+    result r = E_SUCCESS;
+
+    ContentManager contentManager;
+    r = contentManager.Construct();
+    if (IsFailed(r)) {
+        AppLog("Failed to create content manager");
+        return r;
+    }
+
+    contentId = contentManager.CreateContent( srcUriPath, destUriPath, deleteSource, null );
+    r = GetLastResult();
+    if ( IsFailed( r ) ) {
+        AppLog("Failed to create content");
+        return r;
+    }
+
+    return E_SUCCESS;
+}
+
 result TizenContents::removeContent(ContentType contentType, String contentUriPath) {
     result r = E_SUCCESS;
 
