@@ -91,7 +91,7 @@ IList* TizenContents::getContentDirectoryItemList(String contentDirectoryPath) {
 }
 */
 
-result TizenContents::createContent(String srcUriPath, String destUriPath, bool deleteSource, ContentId &contentId) {
+result TizenContents::createContent(String srcPath, String destPath, bool deleteSource, ContentId &newContentId) {
     result r = E_SUCCESS;
 
     ContentManager contentManager;
@@ -101,7 +101,7 @@ result TizenContents::createContent(String srcUriPath, String destUriPath, bool 
         return r;
     }
 
-    contentId = contentManager.CreateContent( srcUriPath, destUriPath, deleteSource, null );
+    newContentId = contentManager.CreateContent( srcPath, destPath, deleteSource, null );
     r = GetLastResult();
     if ( IsFailed( r ) ) {
         AppLog("Failed to create content");
@@ -158,48 +158,57 @@ result TizenContents::removeContent(Tizen::Content::ContentType type, Tizen::Bas
     return E_SUCCESS;
 }
 
-result TizenContents::moveContent(ContentType contentType, String srcUriPath, String destUriPath) {
+result TizenContents::moveContent(String srcPath, String destPath, ContentId &newContentId) {
     result r = E_SUCCESS;
 
-    String srcFullPath = L"";
-    String destFullPath = L"";
-
-    r = getContentPath(contentType, srcUriPath, srcFullPath);
-    if (IsFailed(r)) {
-        AppLog("Failed to get source content path");
-        return r;
+    if( !Tizen::Io::File::IsFileExist( srcPath ) ) {
+        AppLog( "File is not existed" );
+        SetLastResult( E_FILE_NOT_FOUND );
+        return E_FILE_NOT_FOUND;
     }
 
-    r = getContentPath(contentType, destUriPath, destFullPath);
-    if (IsFailed(r)) {
-        AppLog("Failed to get destination content path");
-        return r;
+    if( destPath.CompareTo( srcPath ) == 0 ) {
+        AppLog( "Failed to create same file" );
+        SetLastResult( E_FILE_ALREADY_EXIST );;
+        return E_FILE_ALREADY_EXIST;
     }
 
-    if (!Tizen::Io::File::IsFileExist(srcFullPath)) {
-        AppLog("File is not existed");
-        return GetLastResult();
+    if( Tizen::Io::File::IsFileExist( destPath ) ) {
+        AppLog( "File is already existed" );
+        SetLastResult( E_FILE_ALREADY_EXIST );
+        return E_FILE_ALREADY_EXIST;
     }
 
-    if (destFullPath.CompareTo(srcFullPath) == 0) {
-        AppLog("Failed to create same file");
-        return E_FAILURE;
+    r = createContent( srcPath, destPath, true, newContentId );
+
+    return r;
+}
+
+result TizenContents::moveContent(String srcPath, String destPath) {
+    result r = E_SUCCESS;
+
+    if( !Tizen::Io::File::IsFileExist( srcPath ) ) {
+        AppLog( "File is not existed" );
+        SetLastResult( E_FILE_NOT_FOUND );
+        return E_FILE_NOT_FOUND;
     }
 
-    if (Tizen::Io::File::IsFileExist(destFullPath)) {
-        AppLog("File is already existed");
-        SetLastResult(E_FILE_ALREADY_EXIST);
-        return GetLastResult();
+    if( destPath.CompareTo( srcPath ) == 0 ) {
+        AppLog( "Failed to create same file" );
+        SetLastResult( E_FILE_ALREADY_EXIST );;
+        return E_FILE_ALREADY_EXIST;
     }
 
-    ContentManager contentManager;
-    r = contentManager.Construct();
-    if (IsFailed(r)) {
-        AppLog("Failed to create content manager");
-        return r;
+    if( Tizen::Io::File::IsFileExist( destPath ) ) {
+        AppLog( "File is already existed" );
+        SetLastResult( E_FILE_ALREADY_EXIST );
+        return E_FILE_ALREADY_EXIST;
     }
-    ContentId contentId = contentManager.CreateContent(srcFullPath, destFullPath, true, null);
-    return GetLastResult();
+
+    ContentId id;
+    r = createContent( srcPath, destPath, true, id );
+
+    return r;
 }
 
 result TizenContents::getContentId(ContentType type, String path, ContentId &id) {
@@ -255,94 +264,80 @@ result TizenContents::getContentId(ContentType type, String path, ContentId &id)
 }
 
 
-result TizenContents::getContentId(String contentPath, ContentId &contentId) {
+result TizenContents::getContentId(String path, ContentId &id) {
+    result r = E_SUCCESS;
+
+    if ( path.IsEmpty() ) {
+        AppLog("Failed to getContentId: wrong path value inputed");
+        return E_FAILURE;
+    }
+
+    ContentSearch search;
+    r = search.Construct( CONTENT_TYPE_ALL );
+    if ( IsFailed( r ) ) {
+        AppLog("Failed to create ContentSearch: %s", GetErrorMessage( r ) );
+        return r;
+    }
+
+    int totalPageCount = 0;
+    int totalCount = 0;
+    IList *pContentInfoList = search.SearchN(1,1,totalPageCount,totalCount,L"",L"",SORT_ORDER_NONE); // all content
+    r = GetLastResult();
+    if ( IsFailed( r ) || pContentInfoList == null || totalCount == 0 ) {
+        AppLog("Failed to get content list");
+        return r;
+    }
+    // free
+    TRY_DELETE( pContentInfoList );
+    // get all content in one page
+    pContentInfoList = search.SearchN(1,totalCount,totalPageCount,totalCount,L"",L"",SORT_ORDER_NONE); // all content
+    IEnumerator *pEnum = pContentInfoList->GetEnumeratorN(); // must free
+    bool bfind = false;
+    while ( pEnum->MoveNext() == E_SUCCESS ) {
+        ContentSearchResult *pSearchResult = static_cast<ContentSearchResult*>(pEnum->GetCurrent());
+        ContentInfo *pInfo = pSearchResult->GetContentInfo();
+
+        if ( path.Equals( pInfo->GetContentPath() ) ) {
+            id = pInfo->GetContentId();
+            bfind = true;
+            break;
+        }
+    }
+
+    // free
+    TRY_DELETE( pEnum );
+    TRY_DELETE( pContentInfoList );
+
+    if ( !bfind ) {
+        return E_FAILURE;
+    }
+
+    return E_SUCCESS;
+}
+
+result TizenContents::getContentPath(ContentId contentId, String &path) {
     result r = E_SUCCESS;
 
     ContentManager contentManager;
     r = contentManager.Construct();
-    if (IsFailed(r)) {
+    if( IsFailed( r ) ) {
         AppLog("Failed to create content manager");
         return r;
     }
 
-    ContentType contentType = ContentManagerUtil::CheckContentType(contentPath);
-    if (contentType == CONTENT_TYPE_IMAGE) {
-        ImageContentInfo sourceContentInfo;
-        r = sourceContentInfo.Construct(&contentPath);
-        if (IsFailed(r)) {
-            AppLog("Failed to get source contentInfo");
-            return r;
-        }
-        contentId = contentManager.CreateContent(sourceContentInfo);
-    } else if (contentType == CONTENT_TYPE_AUDIO) {
-        AudioContentInfo sourceContentInfo;
-        r = sourceContentInfo.Construct(&contentPath);
-        if (IsFailed(r)) {
-            AppLog("Failed to get source contentInfo");
-            return r;
-        }
-        contentId = contentManager.CreateContent(sourceContentInfo);
-    } else if (contentType == CONTENT_TYPE_VIDEO) {
-        AudioContentInfo sourceContentInfo;
-        r = sourceContentInfo.Construct(&contentPath);
-        if (IsFailed(r)) {
-            AppLog("Failed to get source contentInfo");
-            return r;
-        }
-        contentId = contentManager.CreateContent(sourceContentInfo);
-    } else {
-        AppLog("Not supporting type");
-        SetLastResult(E_FAILURE);
-        return r;
+    ContentInfo *pInfo = contentManager.GetContentInfoN( contentId ); // must free
+    if ( IsFailed( GetLastResult() ) ) {
+        AppLog("Failed to GetContentInfoN");
+        TRY_DELETE( pInfo ); // free
+        return E_FAILURE;
     }
-    return E_SUCCESS;
-}
+    path = pInfo->GetContentPath();
+    r = GetLastResult();
 
-result TizenContents::getContentPath(ContentType contentType, String uri, String &path) {
-    // TODO: Not implements
+    // free
+    TRY_DELETE( pInfo );
 
-    return E_SUCCESS;
-
-#if 0
-    int pageNo = 1;
-    int countPerPage = TizenContents::MAX_CONTENTSEARCH_COUNTPERPAGE;
-    int totalPageCount = 0, totalCount = 0;
-
-    ContentSearch search;
-    result r = search.Construct(contentType);
-
-    if (IsFailed(r)) {
-        AppLog("Failed to create search instance");
-        return r;
-    }
-    String whereExpr = L"";
-    Tizen::Base::Utility::StringTokenizer st(uri, L"/");
-    String token;
-    while (st.HasMoreTokens())
-    {
-        st.GetNextToken(token);
-    }
-
-    String contentName = Tizen::Io::File::GetFileName(uri);
-
-    whereExpr.Format(TizenContents::STRING_CAPACITY, L"ContentFileName = '%ls'", contentName.GetPointer());
-    IList* pContents = search.SearchN(pageNo, countPerPage, totalPageCount, totalCount, whereExpr, L"", SORT_ORDER_NONE);
-
-    if (!IsFailed(GetLastResult()) && pContents != null && pContents->GetCount() > 0) {
-
-        IEnumerator* pContentEnum = pContents->GetEnumeratorN();
-        while (pContentEnum->MoveNext() == E_SUCCESS) {
-            ContentSearchResult* pSearchInfo = static_cast<ContentSearchResult*>(pContentEnum->GetCurrent());
-            ContentInfo* pContentInfo = static_cast<ContentInfo*>(pSearchInfo->GetContentInfo());
-            String fileName = Tizen::Io::File::GetFileName(pContentInfo->GetContentPath());
-
-            playArray->Set(cnt++, v8::String::New(Util::toAnsi(buf, fileName, STRING_MAX)));
-        }
-        pContents->RemoveAll();
-        delete pContents;
-    }
-    return SetLastResult(E_FILE_NOT_FOUND);
-#endif
+    return r;
 }
 
 IList* TizenContents::getAllContentsListN(Tizen::Content::ContentType contentType) {

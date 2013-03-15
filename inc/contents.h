@@ -25,10 +25,11 @@ public:
     int     getTotalPageCount() const;
     int     getTotalCount() const;
 */
-    static result createContent(Tizen::Base::String srcUriPath, Tizen::Base::String destUriPath, bool deleteSource, Tizen::Content::ContentId &contentId);
+    static result createContent(Tizen::Base::String srcPath, Tizen::Base::String destPath, bool deleteSource, Tizen::Content::ContentId &newContentId);
     static result removeContent(Tizen::Content::ContentId id);
     static result removeContent(Tizen::Content::ContentType type, Tizen::Base::String path);
-    static result moveContent(Tizen::Content::ContentType contentType, Tizen::Base::String srcUriPath, Tizen::Base::String destUriPath);
+    static result moveContent(Tizen::Base::String srcPath, Tizen::Base::String destPath, Tizen::Content::ContentId &newContentId);
+    static result moveContent(Tizen::Base::String srcPath, Tizen::Base::String destPath);
 
     /**
      * Gets content id from given type and path<br>
@@ -39,11 +40,13 @@ public:
     /**
      * Gets content id from the given full source path.
      */
-    static result getContentId(Tizen::Base::String sourcePath, Tizen::Content::ContentId &contentId);
+    static result getContentId(Tizen::Base::String path, Tizen::Content::ContentId &id);
+
     /**
-     * Gets contents full path from the given uri
+     * Gets contents full path from the given id<br>
+     * path is souces's full path<br>
      */
-    static result getContentPath(Tizen::Content::ContentType contentType, Tizen::Base::String uri, Tizen::Base::String &path);
+    static result getContentPath(Tizen::Content::ContentId contentId, Tizen::Base::String &path);
 
     /**
      * Gets All ContentSearchResult List from the given content type

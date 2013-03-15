@@ -269,7 +269,7 @@ v8::Handle<v8::Value> Musics::moveTo( const v8::Arguments& args ) {
     String srcPath = UNWRAP_STRING(args[0]).c_str();
     String destPath = UNWRAP_STRING(args[1]).c_str();
 
-    result r = TizenContents::moveContent(CONTENT_TYPE_AUDIO, srcPath, destPath);
+    result r = TizenContents::moveContent( srcPath, destPath );
     if (IsFailed(r)) {
         return scope.Close(v8::Boolean::New(false));
     }
@@ -866,7 +866,77 @@ CATCH:
 
 v8::Handle<v8::Value> Musics::moveMusicForId(const v8::Arguments& args) {
     AppLog("Entered Musics::moveMusicForId");
+
     v8::HandleScope scope;
+    v8::Local<v8::Object> infoSet = v8::Object::New();
+
+    result r;
+    String *pstr = null;
+
+    // check argument
+    if ( args.Length() < 2 || args[0]->IsUndefined() || !args[0]->IsString() ||
+            args[1]->IsUndefined() || !args[1]->IsString()) {
+        infoSet->Set( v8::String::New( "result" ), v8::False() );
+        infoSet->Set( v8::String::New( "desc" ), v8::String::New( "wrong input value" ) );
+        goto CATCH;
+    } else {
+        char *pResult = null;
+
+        // get old id
+        pstr = Util::toTizenStringN( args[0]->ToString() );  // must free
+        pstr->ToUpper();
+
+        ContentId id;
+        UuId::Parse( *pstr, id );
+
+        // src Path
+        String srcPath;
+        r = TizenContents::getContentPath( id, srcPath );
+        if ( IsFailed( r ) ) {
+            infoSet->Set( v8::String::New( "result" ), v8::False() );
+            infoSet->Set( v8::String::New( "desc" ), v8::String::New( "failed to get path from given id" ) );
+            goto CATCH;
+        }
+
+        // get music file name and New path setting
+        pResult = Util::toAnsi( srcPath ); // must free
+        String *pName = new String( strrchr( pResult, '/' ) ); // must free
+        String *pInputPath = Util::toTizenStringN( args[1]->ToString() ); // must free
+        String destPath = *pInputPath + *pName;
+        TRY_DELETE( pInputPath );
+        TRY_DELETE( pName );
+        TRY_DELETE( pResult );
+
+        AppLog ( "srcPath : %s" , Util::toAnsi( srcPath ) );
+        AppLog ( "desPath : %s" , Util::toAnsi( destPath ) );
+
+        // move music content
+        ContentId newId;
+        r = TizenContents::moveContent( srcPath, destPath, newId );
+        if ( IsFailed( r ) ) {
+            // failed
+            infoSet->Set( v8::String::New( "result" ), v8::False() );
+            infoSet->Set( v8::String::New( "desc" ), v8::String::New( "failed to move music content" ) );
+            goto CATCH;
+        } else {
+            // success
+            infoSet->Set( v8::String::New( "result" ), v8::True() );
+
+            pResult = Util::toAnsi( newId.ToString() );
+            infoSet->Set( v8::String::New( "new-id" ),  v8::String::New( pResult ) );
+            TRY_DELETE( pResult );
+        }
+    }
+
+
+CATCH:
+    // free
+    TRY_DELETE( pstr );
+
+    // info return
+    if ( !infoSet.IsEmpty() ) {
+        return scope.Close( infoSet );
+    }
 
     return scope.Close( v8::Undefined() );
 }
@@ -874,6 +944,62 @@ v8::Handle<v8::Value> Musics::moveMusicForId(const v8::Arguments& args) {
 v8::Handle<v8::Value> Musics::moveMusicForPath(const v8::Arguments& args) {
     AppLog("Entered Musics::moveMusicForPath");
     v8::HandleScope scope;
+    v8::Local<v8::Object> infoSet = v8::Object::New();
+
+    result r;
+    String *pstr = null;
+
+    // check argument
+    if ( args.Length() < 2 || args[0]->IsUndefined() || !args[0]->IsString() ||
+            args[1]->IsUndefined() || !args[1]->IsString()) {
+        infoSet->Set( v8::String::New( "result" ), v8::False() );
+        infoSet->Set( v8::String::New( "desc" ), v8::String::New( "wrong input value" ) );
+        goto CATCH;
+    } else {
+        char *pResult = null;
+        // src Path
+        pstr = Util::toTizenStringN( args[0]->ToString() ); // must free
+        String srcPath = *pstr;
+
+        // get music file name and New path setting
+        pResult = Util::toAnsi( srcPath ); // must free
+        String *pName = new String( strrchr( pResult, '/' ) ); // must free
+        String *pInputPath = Util::toTizenStringN( args[1]->ToString() ); // must free
+        String destPath = *pInputPath + *pName;
+        TRY_DELETE( pInputPath );
+        TRY_DELETE( pName );
+        TRY_DELETE( pResult );
+
+        AppLog ( "srcPath : %s" , Util::toAnsi( srcPath ) );
+        AppLog ( "desPath : %s" , Util::toAnsi( destPath ) );
+
+        // move music content
+        ContentId newId;
+        r = TizenContents::moveContent( srcPath, destPath, newId );
+        if ( IsFailed( r ) ) {
+            // failed
+            infoSet->Set( v8::String::New( "result" ), v8::False() );
+            infoSet->Set( v8::String::New( "desc" ), v8::String::New( "failed to move music content" ) );
+            goto CATCH;
+        } else {
+            // success
+            infoSet->Set( v8::String::New( "result" ), v8::True() );
+
+            pResult = Util::toAnsi( newId.ToString() );
+            infoSet->Set( v8::String::New( "new-id" ),  v8::String::New( pResult ) );
+            TRY_DELETE( pResult );
+        }
+    }
+
+
+CATCH:
+    // free
+    TRY_DELETE( pstr );
+
+    // info return
+    if ( !infoSet.IsEmpty() ) {
+        return scope.Close( infoSet );
+    }
 
     return scope.Close( v8::Undefined() );
 }
