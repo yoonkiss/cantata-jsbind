@@ -3,6 +3,7 @@
 #include <v8.h>
 #include <node.h>
 
+#include "tizenair_apps.h"
 #include "tizenair_system.h"
 #include "images.h"
 #include "musics.h"
@@ -14,6 +15,7 @@ extern "C" {
         Images::Init(target);
         Musics::Init(target);
         Contacts::Init(target);
+        Apps::Init(target);
     }
 }
 

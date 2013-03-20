@@ -131,13 +131,66 @@ bool Util::isArgumentNull(const v8::Handle<v8::Value> value) {
 
 char* Util::toAnsi(Tizen::Base::String str) {
     //size_t wcstombs(char *dest, const wchar_t *src, size_t n);
-    char *cstr = (char *) malloc(str.GetLength()+1);
-    wcstombs(cstr, str.GetPointer(), str.GetLength()+1);
+    setlocale(LC_ALL, "");
+    int nLen = wcstombs( NULL, str.GetPointer(), 0 );
 
-    return cstr;
+    char* pstr = (char*) malloc ( nLen + 1 );
+    wcstombs(pstr, str.GetPointer(), nLen+1);
+
+    return pstr;
 }
 
 char* Util::toAnsi(char *cstr, Tizen::Base::String str, size_t n) {
     wcstombs(cstr, str.GetPointer(), n);
     return cstr;
+}
+
+char* Util::toAnsi(const int num) {
+    char *cstr = (char *) malloc( 128 );
+    sprintf(cstr, "%d", num);
+    return cstr;
+}
+
+char* Util::toAnsi(const unsigned long num) {
+    char *cstr = (char *) malloc( 128 );
+    sprintf(cstr, "%lu", num);
+    return cstr;
+}
+
+char* Util::toAnsi(const double num) {
+    char *cstr = (char *) malloc( 128 );
+    sprintf(cstr, "%f", num);
+    return cstr;
+}
+
+/*
+ * convert C style string form a V8 Utf8Value<br>
+ * if failed then return null.
+ */
+const char* Util::toCString(const v8::String::Utf8Value& value) {
+  return *value ? *value : null;
+}
+
+/*
+ * convert C style string form a V8 AsciiValue<br>
+ * if failed then return null.
+ */
+const char* Util::toCString(const v8::String::AsciiValue& value) {
+  return *value ? *value : null;
+}
+
+/*
+ * convert Tizen style string form a V8 String<br>
+ * if failed then return null.<br>
+ *
+ * caller must free
+ */
+Tizen::Base::String* Util::toTizenStringN(const v8::Local<v8::String>& value) {
+    if ( value->Length() == 0 ) {
+        return new Tizen::Base::String();
+    }
+
+    v8::String::Utf8Value v8utfstr( value->ToObject() );
+    const char *pValue = toCString( v8utfstr );
+    return new Tizen::Base::String( pValue );
 }

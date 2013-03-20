@@ -27,6 +27,33 @@ cd test/src
 nodeunit-watcher *.js
 ```
 
+
+다른 방법으로, curl 을 이용한 테스트도 가능하다.
+
+```
+addcategory
+curl -X POST -F "name=agew" http://localhost:3000/categories
+
+removecategory
+curl -X DELETE -F "force=agew" http://localhost:3000/categories/IDE2
+
+renamecategory
+curl -X PUT -F "name=WBC" http:///IDElhost:3000/categories/
+
+addcontact
+curl -X POST -F "name=agew" http://localhost:3000/contacts
+
+
+‎‎Test request
+  curl -i -X PUT -H 'Content-Type: application/json' -d '{"name": "New Wine", "year": "2010"}' http://localhost:3000/wines/5069b47aa892630aae000007
+  curl -i -X POST -H 'Content-Type: application/json' -d '{"name": "New Wine", "year": "2009"}' http://localhost:3000/wines
+```
+
+기타 개발중 팁으로, bind 코드 빌드시 바로 변경된 파일을 cantata-native 프로젝트로 복사해주는 코드를 사용한다.
+/home/hyunsik/tizen-sdk/tools push /home/hyunsik/git/tizen-air/cantata-jsbind/Debug-Tizen-Emulator/tizen-native.node /opt/apps/hF1jRugBXt/res/routes
+
+
+
 ### To build your project
 add include path: C/C++ build > Settings > Tool Settings > C++ Compiler > Includes
 
