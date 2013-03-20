@@ -1,7 +1,7 @@
 #ifndef __TIZENAIR_COMMON__
 #define __TIZENAIR_COMMON__
 
-#define TRY_DELETE( x ) { if ( NULL != (x) ) delete (x);  }
+#define TRY_DELETE( x ) { if ( NULL != (x) ) delete (x); x=null; }
 
 // std::string을 v8::String으로 변환
 #define WRAP_STRING( x ) ( ( std::string() ==(x))?(v8::Undefined()):(v8::String::New( ( (x).c_str() ) ) ) )

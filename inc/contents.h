@@ -5,6 +5,9 @@
 #include <FContent.h>
 #include <FSystem.h>
 
+#include "tizenair-common.h"
+#include "tizenair-util.h"
+
 class TizenContents {
 public:
 /*
@@ -22,17 +25,39 @@ public:
     int     getTotalPageCount() const;
     int     getTotalCount() const;
 */
-    static result removeContent(Tizen::Content::ContentType contentType, Tizen::Base::String contentUriPath);
-    static result moveContent(Tizen::Content::ContentType contentType, Tizen::Base::String srcUriPath, Tizen::Base::String destUriPath);
+    static result createContent(Tizen::Base::String srcPath, Tizen::Base::String destPath, bool deleteSource, Tizen::Content::ContentId &newContentId);
+    static result removeContent(Tizen::Content::ContentId id);
+    static result removeContent(Tizen::Content::ContentType type, Tizen::Base::String path);
+    static result moveContent(Tizen::Base::String srcPath, Tizen::Base::String destPath, Tizen::Content::ContentId &newContentId);
+    static result moveContent(Tizen::Base::String srcPath, Tizen::Base::String destPath);
+
+    /**
+     * Gets content id from given type and path<br>
+     * path is souces's full path<br>
+     */
+    static result getContentId(Tizen::Content::ContentType type, Tizen::Base::String path, Tizen::Content::ContentId &id);
+
     /**
      * Gets content id from the given full source path.
      */
-    static result getContentId(Tizen::Base::String sourcePath, Tizen::Content::ContentId &contentId);
-    /**
-     * Gets contents full path from the given uri
-     */
-    static result getContentPath(Tizen::Content::ContentType contentType, Tizen::Base::String uri, Tizen::Base::String &path);
+    static result getContentId(Tizen::Base::String path, Tizen::Content::ContentId &id);
 
+    /**
+     * Gets contents full path from the given id<br>
+     * path is souces's full path<br>
+     */
+    static result getContentPath(Tizen::Content::ContentId contentId, Tizen::Base::String &path);
+
+    /**
+     * Gets All ContentSearchResult List from the given content type
+     */
+    static Tizen::Base::Collection::IList* getAllContentsListN(Tizen::Content::ContentType contentType);
+
+    /**
+     * Gets All ContentSearchResult List from the given content type and column<br>
+     * If column is null then same result of getAllContentListN method
+     */
+    static Tizen::Base::Collection::IList* getAllContentsListForColumnN(Tizen::Content::ContentType contentType, Tizen::Base::String column);
     static const int STRING_CAPACITY = 1024;
     static const int MAX_CONTENTSEARCH_COUNTPERPAGE = 50;
 
