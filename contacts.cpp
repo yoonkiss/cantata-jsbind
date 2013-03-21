@@ -108,26 +108,36 @@ v8::Handle<v8::Value> Contacts::list(const v8::Arguments& args) {
 v8::Handle<v8::Value> Contacts::addCategory(const v8::Arguments& args) {
 	AppLogTag("Contacts", "Entered Contacts::addCategory (args length:%d)", args.Length());
 
-    if (args.Length() < 1 || Util::isArgumentNull(args[0])) {
+//	if (args.Length() < 1 || Util::isArgumentNull(args[0])) {
+    if (args.Length() < 1) {
     	AppLogTag("Contacts", "Bad parameters");
         return v8::ThrowException(v8::String::New("Bad parameters"));
     }
     v8::HandleScope scope;
 
-    String newCategory = UNWRAP_STRING(args[0]).c_str();
-    AppLogTag("Contacts","Now add new Category:%s", &newCategory);
+    String newCategory = null;
+    if(args[0]->IsString())
+    {
+    	newCategory = UNWRAP_STRING(args[0]).c_str();
+    	AppLogTag("Contacts","Now add new Category:%ls", newCategory.GetPointer());
+    }
+
+    if(newCategory == null)
+    {
+    	AppLogTag("Contacts","category name is null");
+    }
 
     Category category;
     category.SetName(newCategory);
 
     AddressbookManager* pAddressbookManager = AddressbookManager::GetInstance();
-    pAddressbookManager->AddCategory(category, DEFAULT_ADDRESSBOOK_ID);
+    Addressbook* pAddressbook = pAddressbookManager->GetAddressbookN(DEFAULT_ADDRESSBOOK_ID);
+
+    pAddressbook->AddCategory(category);
 
     if (IsFailed(GetLastResult())) {
-    	AppLogTag("Contacts","false");
         return scope.Close(v8::Boolean::New(false));
     } else {
-    	AppLogTag("Contacts","true:%s", &newCategory);
         return scope.Close(v8::Boolean::New(true));
     }
 }
@@ -145,9 +155,10 @@ v8::Handle<v8::Value> Contacts::removeCategory(const v8::Arguments& args) {
     String force = UNWRAP_STRING(args[1]).c_str();
 
     AddressbookManager* pAddressbookManager = AddressbookManager::GetInstance();
-    IList* pCategoryList = pAddressbookManager->GetAllCategoriesN();
-
     Addressbook* pAddressbook = pAddressbookManager->GetAddressbookN(DEFAULT_ADDRESSBOOK_ID);
+
+    IList* pCategoryList = pAddressbook->GetAllCategoriesN();
+
     result r = GetLastResult();
     if (IsFailed(r)) {
         AppLog("Failed to get addressbook: %s", GetErrorMessage(r));
@@ -163,10 +174,10 @@ v8::Handle<v8::Value> Contacts::removeCategory(const v8::Arguments& args) {
 
                 r = pAddressbook->RemoveCategory(*pCategory);
                 if (IsFailed(r)) {
-                    AppLog("Failed to get addressbook: %s", GetErrorMessage(r));
+                    AppLog("Fail to remove category: %s", GetErrorMessage(r));
                     return scope.Close(v8::Boolean::New(false));
                 } else {
-                    AppLog("Deleted addressbook");
+                    AppLog("Succeed to remove category");
                     break;
                 }
             }
@@ -183,15 +194,25 @@ v8::Handle<v8::Value> Contacts::isExistCategory(const v8::Arguments& args) {
         AppLog("Bad parameters");
         return v8::ThrowException(v8::String::New("Bad parameters"));
     }
+    String name = null;
     v8::HandleScope scope;
+    if(args[0]->IsString())
+    {
+    	name = UNWRAP_STRING(args[0]).c_str();
+    	AppLogTag("Contacts","check Category:%ls", name.GetPointer());
+    }
 
-    String name = UNWRAP_STRING(args[0]).c_str();
-    AppLogTag("Contacts","check Category:%s", &name);
+    if(name == null)
+    {
+    	AppLogTag("Contacts","category name is null");
+    	return scope.Close(v8::Boolean::New(false));
+    }
 
     AddressbookManager* pAddressbookManager = AddressbookManager::GetInstance();
-    IList* pCategoryList = pAddressbookManager->GetAllCategoriesN();
+    Addressbook* pAddressbook = pAddressbookManager->GetAddressbookN(DEFAULT_ADDRESSBOOK_ID);
 
-//    Addressbook* pAddressbook = pAddressbookManager->GetAddressbookN(DEFAULT_ADDRESSBOOK_ID);
+    IList* pCategoryList = pAddressbook->GetAllCategoriesN();
+
     result r = GetLastResult();
 
     if (IsFailed(r)) {
@@ -225,13 +246,30 @@ v8::Handle<v8::Value> Contacts::renameCategory(const v8::Arguments& args) {
     }
     v8::HandleScope scope;
 
-    String category = UNWRAP_STRING(args[0]).c_str();
-    String newcategory = UNWRAP_STRING(args[1]).c_str();
+    String category = null;
+    String newcategory = null;
+    if(args[0]->IsString())
+    {
+    	category = UNWRAP_STRING(args[0]).c_str();
+    	AppLogTag("Contacts","old Category:%ls", category.GetPointer());
+    }
+    if(args[1]->IsString())
+    {
+    	newcategory = UNWRAP_STRING(args[1]).c_str();
+    	AppLogTag("Contacts","new Category:%ls", newcategory.GetPointer());
+    }
+
+    if(category == null || newcategory == null)
+	{
+		AppLogTag("Contacts","category name is null");
+		return scope.Close(v8::Boolean::New(false));
+	}
 
     AddressbookManager* pAddressbookManager = AddressbookManager::GetInstance();
+    Addressbook* pAddressbook = pAddressbookManager->GetAddressbookN(DEFAULT_ADDRESSBOOK_ID);
+
     IList* pCategoryList = pAddressbookManager->GetAllCategoriesN();
 
-    Addressbook* pAddressbook = pAddressbookManager->GetAddressbookN(DEFAULT_ADDRESSBOOK_ID);
     result r = GetLastResult();
     if (IsFailed(r)) {
         AppLog("Failed to get addressbook: %s", GetErrorMessage(r));
@@ -244,14 +282,15 @@ v8::Handle<v8::Value> Contacts::renameCategory(const v8::Arguments& args) {
         while (pCategoryEnum->MoveNext() == E_SUCCESS) {
             pCategory = static_cast<Category*>(pCategoryEnum->GetCurrent());
             if (pCategory->GetName().Equals(category)) {
+
             	pCategory->SetName(newcategory);
 
                 r = pAddressbook->UpdateCategory(*pCategory);
                 if (IsFailed(r)) {
-                    AppLog("Failed to get addressbook: %s", GetErrorMessage(r));
+                    AppLog("Fail to update category: %s", GetErrorMessage(r));
                     return scope.Close(v8::Boolean::New(false));
                 } else {
-                    AppLog("Deleted addressbook");
+                    AppLog("Succeed to update category");
                     break;
                 }
             }
@@ -271,8 +310,6 @@ v8::Handle<v8::Value> Contacts::add(const v8::Arguments& args) {
         return v8::ThrowException(v8::String::New("Bad parameters"));
     }
     v8::HandleScope scope;
-
-    AddressbookManager* pAddressbookManager = AddressbookManager::GetInstance();
 
     String category;
 	String name;
@@ -302,6 +339,7 @@ v8::Handle<v8::Value> Contacts::add(const v8::Arguments& args) {
     	return scope.Close(v8::Boolean::New(false));
     }
 
+    //CREATE CONTACT
     Contact contact;
     contact.SetValue(CONTACT_PROPERTY_ID_FIRST_NAME, name);
 
@@ -316,12 +354,15 @@ v8::Handle<v8::Value> Contacts::add(const v8::Arguments& args) {
 		contact.AddPhoneNumber(phoneNumber);
 	}
 
-    //FIND CATEGORY TO ADD AS A MEMBER
-    IList* pCategoryList = pAddressbookManager->GetAllCategoriesN();
+	AddressbookManager* pAddressbookManager = AddressbookManager::GetInstance();
+	Addressbook* pAddressbook = pAddressbookManager->GetAddressbookN(DEFAULT_ADDRESSBOOK_ID);
+
+    //GET CATEGORIES TO ADD A CONTACT
+	IList* pCategoryList = pAddressbook->GetAllCategoriesN();
 
 	result r = GetLastResult();
 	if (IsFailed(r)) {
-		AppLog("Failed to get addressbook: %s", GetErrorMessage(r));
+		AppLogTag("Contacts", "Failed to get categories: %s", GetErrorMessage(r));
 		return scope.Close(v8::Boolean::New(false));
 	}
 
@@ -333,53 +374,52 @@ v8::Handle<v8::Value> Contacts::add(const v8::Arguments& args) {
 			pCategory = static_cast<Category*>(pCategoryEnum->GetCurrent());
 			if (pCategory->GetName().Equals(category)) {
 
-				pAddressbookManager->AddContact(contact, DEFAULT_ADDRESSBOOK_ID);
-				pAddressbookManager->AddMemberToCategory(pCategory->GetRecordId(), contact.GetRecordId());
+				pAddressbook->AddContact(contact);
+				pAddressbook->AddMemberToCategory(pCategory->GetRecordId(), contact.GetRecordId());
 
-				  if (IsFailed(GetLastResult())) {
-					   return scope.Close(v8::Boolean::New(false));
-				   } else {
-					   return scope.Close(v8::Boolean::New(true));
-				   }
+				if (IsFailed(GetLastResult())) {
+					return scope.Close(v8::Boolean::New(false));
+				} else {
+					AppLogTag("Contacts", "%d", contact.GetRecordId());
+					return scope.Close(v8::Boolean::New(true));
+				}
 			}
 		}
 	}
+
+	AppLogTag("Contacts","No Categories");
+	return scope.Close(v8::Boolean::New(false));
 }
 
-//WHAT IS THE UNIQUE KEY? PERSON ID? CONTACT ID?
+//CONTACT ID
 v8::Handle<v8::Value> Contacts::remove(const v8::Arguments& args) {
-    AppLog("Entered Contacts::renameCategory (args length:%d)", args.Length());
+	AppLogTag("Contacts", "Entered Contacts::renameCategory (args length:%d)", args.Length());
 
-    if (args.Length() < 2 || Util::isArgumentNull(args[0])) {
-        AppLog("Bad parameters");
+//	if (args.Length() < 1 || Util::isArgumentNull(args[0])) {
+    if (args.Length() < 1 ) {
+    	AppLogTag("Contacts", "Bad parameters");
         return v8::ThrowException(v8::String::New("Bad parameters"));
     }
     v8::HandleScope scope;
 
+    int contactId;
+    if(args[0]->IsInt32())
+	{
+    	contactId =  args[0]->Int32Value();
+		AppLogTag("Contacts","contactId :%d", contactId);
+	}
+
     AddressbookManager* pAddressbookManager = AddressbookManager::GetInstance();
+    Addressbook* pAddressbook = pAddressbookManager->GetAddressbookN(DEFAULT_ADDRESSBOOK_ID);
 
-    String personId = UNWRAP_STRING(args[0]).c_str();
-    String name = UNWRAP_STRING(args[1]).c_str();
-
-    IList* pContacts  = pAddressbookManager->SearchContactsByNameN(name);
-
-    if (pContacts != null && pContacts->GetCount() > 0) {
-    		IEnumerator* pContactEnum = pContacts->GetEnumeratorN();
-    		Contact* pContact = null;
-
-    		while (pContactEnum->MoveNext() == E_SUCCESS) {
-    			pContact = static_cast<Contact*>(pContactEnum->GetCurrent());
-//    			if (pContact->GetPersonId().Equals(personId)) {
-//    				pAddressbookManager->RemoveContact(pContact->GetRecordId());
-//
-//    				  if (IsFailed(GetLastResult())) {
-//    					   return scope.Close(v8::Boolean::New(false));
-//    				   } else {
-//    					   return scope.Close(v8::Boolean::New(true));
-//    				   }
-//    			}
-    		}
-    	}
+    pAddressbook->RemoveContact(contactId);
+	if (IsFailed(GetLastResult())) {
+		AppLogTag("Contacts", "Fail to remove contact");
+		return scope.Close(v8::Boolean::New(false));
+	} else {
+		AppLogTag("Contacts", "Succeed to remove contact");
+		return scope.Close(v8::Boolean::New(true));
+	}
 }
 
 
